@@ -1,0 +1,184 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+
+	<bean id="r1001" class="com.sunline.ark.batch.YakFileItemReader" scope="step">
+		<description>交易流水文件</description>
+		<property name="resource" ref="resCcsTranFlow" />
+		<property name="fileDetailClass" value="com.sunline.ppy.dictionary.exchange.TpsTranFlow"/>
+	</bean>
+
+	<bean id="p1001" class="com.sunline.ccs.batch.cc1000.P1001LoadTxn" scope="step"/>
+	
+	<!-- <bean id="w1001TpsInterface" class="com.sunline.acm.service.sdk.BatchFileWriter" scope="step">
+		<description>交易转换接口</description>
+		<property name="fileDetailClass" value="com.sunline.ppy.dictionary.exchange.FmInterfaceItem"/>
+		<property name="filename" value="S020001TpsTrans"/>
+	</bean>
+
+	<bean id="w1001UnmatchedLoanReturnRpt" class="com.sunline.acm.service.sdk.BatchFileWriter" scope="step">
+		<description>退货未匹配异常交易报表</description>
+		<property name="fileDetailClass" value="com.sunline.ppy.dictionary.report.ccs.UnmatchedLoanReturnRptItem"/>
+		<property name="filename" value="S020002UnmatchedLoanReturnRpt"/>
+	</bean> -->
+	
+	<bean id="w1001TpsInterface" class="com.sunline.ark.batch.YakPartitionFileItemWriter" scope="step">
+		<description>交易转换接口</description>
+		<property name="resource" ref="resS020001TpsTrans"/>
+		<property name="fileDetailClass" value="com.sunline.ppy.dictionary.exchange.FmInterfaceItem"/>
+	</bean>
+	
+	<bean id="w1001UnmatchedLoanReturnRpt" class="com.sunline.ark.batch.YakPartitionFileItemWriter" scope="step">
+		<description>退货未匹配异常交易报表</description>
+		<property name="resource" ref="resS020002UnmatchedLoanReturnRpt"/>
+		<property name="fileDetailClass" value="com.sunline.ppy.dictionary.report.ccs.UnmatchedLoanReturnRptItem"/>
+	</bean>
+	
+	
+	<bean id="w1001" class="com.sunline.ark.batch.PropertyDelegateWriter" scope="step">
+		<property name="writers">
+			<map>
+				<entry key="tpsInterface" value-ref="w1001TpsInterface"/>
+				<entry key="unmatchedLoanReturnRpt" value-ref="w1001UnmatchedLoanReturnRpt"/>
+			</map>
+		</property>
+	</bean>
+	
+	<bean id="t1001FileMerger" class="com.sunline.ark.batch.FileMergerTasklet">
+		<property name="taskExecutor" ref="asyncTaskExecutor"/>
+		<property name="pollInterval" value="#{env['pollInterval']?:2000}" />
+		<property name="resources" >
+			<list>
+				<ref bean="resS020001TpsTrans" />
+				<ref bean="resS020002UnmatchedLoanReturnRpt" />
+			</list>
+		</property>
+	</bean>
+	
+	<!-- <bean id="e1001" class="com.sunline.fps.service.sdk.batch.DbFileExporter" scope="step">
+	    <property name="instanceName" value="#{env.instanceName}" />
+	    <property name="systemType" value="CCS" />
+	    <property name="filenames">
+			<list>
+				<value>S020001TpsTrans</value>
+				<value>S020002UnmatchedLoanReturnRpt</value>
+			</list>
+		</property>
+	</bean> -->
+	
+	<!-- <bean id="r1011" class="com.sunline.ark.batch.CompositeItemStreamReader" scope="step">
+		<property name="readers">
+			<list>
+				<bean id="R1001TPSTxn" class="com.sunline.ark.batch.YakFileItemReader" scope="step">
+					<description>交易接口文件</description>
+					<property name="resource" ref="resS1000TPSTxn" />
+					<property name="fileDetailClass" value="com.sunline.ppy.dictionary.exchange.FmInterfaceItem" />
+				</bean>
+				<bean id="R1001TxnManual" class="com.sunline.ark.batch.YakFileItemReader" scope="step">
+					<description>手工送入交易接口文件</description>
+					<property name="detailClass" value="com.sunline.ppy.dictionary.exchange.FmInterfaceItem" />
+					<property name="resource" ref="resS1000TxnManual" />
+				</bean>
+			</list>
+		</property>
+	</bean> -->
+	<bean id="R1001TPSTxn" class="com.sunline.ark.batch.YakFileItemReader" scope="step">
+			<description>交易接口文件</description>
+			<property name="resource" ref="resS1000TPSTxn" />
+			<property name="fileDetailClass" value="com.sunline.ppy.dictionary.exchange.FmInterfaceItem" />
+		</bean>
+	<bean id="R1001TxnManual" class="com.sunline.ark.batch.YakFileItemReader" scope="step">
+		<description>手工送入交易接口文件</description>
+		<property name="fileDetailClass" value="com.sunline.ppy.dictionary.exchange.FmInterfaceItem" />
+		<property name="resource" ref="resS1000TxnManual" />
+	</bean>
+
+	<bean id="p1011" class="com.sunline.ccs.batch.cc1000.P1011TxnImp" scope="step"/>
+	
+	<!-- <bean id="w1011RptTxn" class="com.sunline.acm.service.sdk.BatchFileWriter" scope="step">
+		<description>装载报表</description>
+		<property name="fileDetailClass" value="com.sunline.ppy.dictionary.report.ccs.RptTxnItem"/>
+		<property name="filename" value="S100001Rpt"/>
+	</bean>
+
+	<bean id="w1011GlTxn" class="com.sunline.acm.service.sdk.BatchFileWriter" scope="step">
+		<description>交易拆分送总账</description>
+		<property name="fileDetailClass" value="com.sunline.ppy.dictionary.exchange.GlTxnItem"/>
+		<property name="filename" value="S100002Gl"/>
+	</bean> -->
+	
+	<bean id="w1011RptTxn" class="com.sunline.ark.batch.YakPartitionFileItemWriter" scope="step">
+		<description>装载报表</description>
+		<property name="resource" ref="resS100001Rpt"/>
+		<property name="fileDetailClass" value="com.sunline.ppy.dictionary.report.ccs.RptTxnItem"/>
+	</bean>
+	<bean id="w1011GlTxn" class="com.sunline.ark.batch.YakPartitionFileItemWriter" scope="step">
+		<description>交易拆分送总账</description>
+		<property name="resource" ref="resS100002Gl"/>
+		<property name="fileDetailClass" value="com.sunline.ppy.dictionary.exchange.GlTxnItem"/>
+	</bean>
+	
+	
+	<bean id="w1011" class="com.sunline.ark.batch.PropertyDelegateWriter" scope="step">
+		<property name="writers">
+			<map>
+				<entry key="rptTxnItem" value-ref="w1011RptTxn"/>
+				<entry key="glTxnItemList" value-ref="w1011GlTxn"/>
+			</map>
+		</property>
+	</bean>
+	
+	<bean id="t1011FileMerger" class="com.sunline.ark.batch.FileMergerTasklet">
+		<property name="taskExecutor" ref="asyncTaskExecutor"/>
+		<property name="pollInterval" value="#{env['pollInterval']?:2000}" />
+		<property name="resources" >
+			<list>
+				<ref bean="resS100001Rpt" />
+				<ref bean="resS100002Gl" />
+			</list>
+		</property>
+	</bean>
+	
+	<!-- <bean id="e1011" class="com.sunline.fps.service.sdk.batch.DbFileExporter" scope="step">
+	    <property name="instanceName" value="#{env.instanceName}" />
+	    <property name="systemType" value="CCS" />
+		<property name="filenames">
+			<list>
+				<value>S100001Rpt</value>
+				<value>S100002Gl</value>
+			</list>
+		</property>
+	</bean> -->
+	
+	
+	<bean id="r1051" class="com.sunline.ark.batch.VariableFileItemReader" scope="step">
+		<description>回佣类总账输入文件</description>
+		<property name="detailClass" value="com.sunline.ppy.dictionary.exchange.GlTxnItem"/>
+		<property name="resource" ref="resS1050TpsGlTransIn"/>
+	</bean>
+
+	<bean id="p1051" class="com.sunline.ccs.batch.cc1000.P1051TxnGlExp" scope="step"/>
+	
+	<!-- <bean id="w1051" class="com.sunline.acm.service.sdk.BatchFileWriter" scope="step">
+		<description>回佣类总账输出文件</description>
+		<property name="detailClass" value="com.sunline.ppy.dictionary.exchange.GlTxnItem"/>
+		<property name="resource" ref="S105001TpsGlTransOut"/>
+	</bean> -->
+	
+	<bean id="w1051" class="com.sunline.ark.batch.YakFileItemWriter" scope="step">
+		<description>回佣类总账输出文件</description>
+		<property name="resource" ref="resS105001TpsGlTransOut"/>
+		<property name="fileDetailClass" value="com.sunline.ppy.dictionary.exchange.GlTxnItem"/>
+	</bean>
+	
+	<!-- <bean id="e1051" class="com.sunline.fps.service.sdk.batch.DbFileExporter" scope="step">
+	    <property name="instanceName" value="#{env.instanceName}" />
+	    <property name="systemType" value="CCS" />
+		<property name="filenames">
+			<list> 
+				<value>S105001TpsGlTransOut</value>
+			</list>
+		</property>
+	</bean> -->
+</beans>

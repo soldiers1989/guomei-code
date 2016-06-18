@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<beans default-lazy-init="false"
+	xmlns:p="http://www.springframework.org/schema/p"
+	xmlns="http://www.springframework.org/schema/beans"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:util="http://www.springframework.org/schema/util"
+	xmlns:jee="http://www.springframework.org/schema/jee"
+	xmlns:jms="http://www.springframework.org/schema/jms"
+	xmlns:batch="http://www.springframework.org/schema/batch"
+	xmlns:task="http://www.springframework.org/schema/task"
+	xsi:schemaLocation="http://www.springframework.org/schema/jee http://www.springframework.org/schema/jee/spring-jee-3.1.xsd
+		http://www.springframework.org/schema/jms http://www.springframework.org/schema/jms/spring-jms-3.1.xsd
+		http://www.springframework.org/schema/task http://www.springframework.org/schema/task/spring-task-3.2.xsd
+		http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.1.xsd
+		http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util-3.1.xsd
+		http://www.springframework.org/schema/batch http://www.springframework.org/schema/batch/spring-batch.xsd
+		http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-3.1.xsd">
+
+
+	<!-- 导入步骤定义 -->
+	<import resource="test-steps-cc1400.xml"/>
+
+	<!-- 用于支持并发批量的线程池 -->
+	<task:executor id="asyncTaskExecutor" pool-size="#{env['batchTaskPoolSize'] ?: 16}"/>
+	
+	<batch:job id="ccsMatchJob" >
+		<!-- 等待并下载回盘文件 -->
+ 		<!-- <batch:step id="resp-file-wait" next="resp-file-down">
+			<batch:tasklet ref="respFileWait" />
+		</batch:step>
+		<batch:step id="resp-file-down" next="file-wait">
+			<batch:tasklet ref="respFileDownload" />
+		</batch:step>
+		
+		等待文件
+		<batch:step id="file-wait" next="cc1406">
+			<batch:tasklet ref="fileWait" />
+		</batch:step> -->
+		
+		<!-- <batch:step id="cc1406" next="cc1407">
+			<batch:description>商户平台对账 - 出成功报表、马上流水异常报表</batch:description>
+			<batch:tasklet>
+				<batch:chunk reader="r1406" processor="p1406" writer="w1406"  commit-interval="#{env['commitInterval'] ?: 100}" />
+			</batch:tasklet>
+		</batch:step>
+
+		
+		<batch:step id="cc1407" next="cc1407FileMerger">
+			<batch:description>商户对账 - 出订单未匹配报表</batch:description>
+			<batch:partition partitioner="r1407">
+				<batch:handler grid-size="#{env['GridSize'] ?: 16}" task-executor="asyncTaskExecutor"/>
+				<batch:step>
+					<batch:tasklet>
+						<batch:chunk reader="r1407" writer="w1407"  commit-interval="#{env['commitInterval'] ?: 100}" />
+					</batch:tasklet>
+				</batch:step>
+			</batch:partition>
+		</batch:step>
+		
+		<batch:step id="cc1407FileMerger" next="cc1407MatchErrMerge">
+			<batch:tasklet ref="t1407FileMerger" />
+		</batch:step>
+		
+		<batch:step id="cc1407MatchErrMerge">
+			<batch:description>合并对账异常文件</batch:description>
+			<batch:tasklet ref="t1407MergeMatchErrRpt" />
+		</batch:step> -->
+		
+		<!-- 马上流水对账 -->
+		<!-- <batch:step id="cc1401" next="cc1402">
+			<batch:description>马上对账流水文件代付代扣文件合并</batch:description>
+			<batch:tasklet ref="p1401PreMergeTransFlow" />
+		</batch:step>
+		
+		<batch:step id="cc1402" next="cc1402FileMerger" >
+			<batch:description>马上流水对账 - 出成功报表、马上流水异常报表</batch:description>
+			<batch:tasklet>
+				<batch:chunk reader="r1402" processor="p1402" writer="w1402"  commit-interval="#{env['commitInterval'] ?: 100}" />
+			</batch:tasklet>
+		</batch:step>
+		
+		<batch:step id="cc1402FileMerger"  >
+			<batch:tasklet ref="t1402FileMerger" />
+		</batch:step> -->
+		
+	<!-- 	<batch:step id="cc1403" next="cc1403FileMerger">
+			<batch:description>马上流水对账 - 出订单未匹配报表</batch:description>
+			<batch:partition partitioner="r1403">
+				<batch:handler grid-size="#{env['GridSize'] ?: 16}" task-executor="asyncTaskExecutor"/>
+				<batch:step>
+					<batch:tasklet>
+						<batch:chunk reader="r1403" writer="w1403"  commit-interval="#{env['commitInterval'] ?: 100}" />
+					</batch:tasklet>
+				</batch:step>
+			</batch:partition>
+		</batch:step>
+		
+		<batch:step id="cc1403FileMerger" next="cc1403MatchErrMerge">
+			<batch:tasklet ref="t1403FileMerger" />
+		</batch:step>
+		
+		<batch:step id="cc1403MatchErrMerge" next="cc1404">
+			<batch:description>合并对账异常文件</batch:description>
+			<batch:tasklet ref="t1403MergeMatchErrRpt" />
+		</batch:step>
+		
+		<batch:step  id="cc1404" next="cc1404FileMerger" >
+			<batch:description>马上对账完毕清理Order表</batch:description>
+			<batch:partition partitioner="r1404">
+			<batch:handler grid-size="#{env['GridSize'] ?: 16}" task-executor="asyncTaskExecutor"/>
+			<batch:step >
+				<batch:tasklet>
+					<batch:chunk reader="r1404" processor="p1404" writer="w1404"  commit-interval="#{env['commitInterval'] ?: 100}" />
+				</batch:tasklet>
+			</batch:step>
+			</batch:partition>
+		</batch:step>
+		
+		<batch:step id="cc1404FileMerger  ">
+			<batch:tasklet ref="t1404FileMerger" />
+		</batch:step> -->
+		
+	</batch:job>
+
+</beans>

@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<beans default-lazy-init="false"
+	xmlns:p="http://www.springframework.org/schema/p"
+	xmlns="http://www.springframework.org/schema/beans"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:util="http://www.springframework.org/schema/util"
+	xmlns:jee="http://www.springframework.org/schema/jee"
+	xmlns:jms="http://www.springframework.org/schema/jms"
+	xmlns:batch="http://www.springframework.org/schema/batch"
+	xsi:schemaLocation="http://www.springframework.org/schema/jee http://www.springframework.org/schema/jee/spring-jee-3.1.xsd
+		http://www.springframework.org/schema/jms http://www.springframework.org/schema/jms/spring-jms-3.1.xsd
+		http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.1.xsd
+		http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util-3.1.xsd
+		http://www.springframework.org/schema/batch http://www.springframework.org/schema/batch/spring-batch.xsd
+		http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-3.1.xsd">
+	
+	<!-- 占位符 -->
+	<bean id="env" class="org.springframework.beans.factory.config.PropertiesFactoryBean">
+		<property name="locations" value="#{systemProperties['env.files'] ?: 'classpath:/dev/*.properties'}"/>
+	</bean>
+
+	<!-- 所有业务组件 -->
+	<context:component-scan base-package="com.sunline.ccs.batch"/>
+	<context:component-scan base-package="com.sunline.ccs.test"/>
+	<context:component-scan base-package="com.sunline.ccs.facility"/>
+	<context:component-scan base-package="com.sunline.ccs.loan"/>
+	<context:component-scan base-package="com.sunline.ppy.dictionary" />
+	<context:component-scan base-package="com.sunline.ark.batch"/>
+	<context:component-scan base-package="com.sunline.pcm.service.sdk" />
+	<context:component-scan base-package="com.sunline.ccs.otb" />
+	<context:component-scan base-package="com.sunline.ccs.http" />
+
+	<!-- Sequence组件 -->
+	<context:component-scan base-package="com.sunline.ccs.infrastructure.server.seq"/>
+	
+	
+	<!-- 测试参数对象，需要在案例中初始化 -->
+	<bean id="parameterMock" class="com.sunline.pcm.service.sdk.ParameterServiceMock"/>
+	<bean class="com.sunline.pcm.service.sdk.UnifiedParameterFacility">
+		<property name="unifiedParameterService" ref="parameterMock"/>
+	</bean>
+	
+	<!-- 批量基础设施，这里也使用Mock来代替global management service，需要在案例中初始化批量日期 -->
+	<bean id="globalManagementService" class="com.sunline.acm.service.sdk.GlobalManagementServiceMock"/>
+	<bean id="batchStatusFacility" class="com.sunline.acm.service.sdk.BatchStatusFacility"/>
+	
+	<batch:job-repository id="jobRepository" isolation-level-for-create="DEFAULT" data-source="dataSource"/>
+	<bean id='jobLauncher' class="org.springframework.batch.core.launch.support.SimpleJobLauncher">
+		<property name="jobRepository" ref="jobRepository"/>
+	</bean>
+	<bean class="org.springframework.batch.test.JobLauncherTestUtils"/>
+	
+	<!-- 定义在测试时的文件生成名称规则 -->
+	<import resource="test-interface-front.xml"/>
+	
+</beans>

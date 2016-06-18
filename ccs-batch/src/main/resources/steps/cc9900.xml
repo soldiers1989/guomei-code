@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+
+	<!-- <bean id="e9901" class="com.sunline.fps.service.sdk.batch.DbMergeFileExporter" scope="step">
+	    <property name="instanceName" value="#{env.instanceName}" />
+	    <property name="systemType" value="CCS" />
+	    <property name="infilenames">
+	    	<list>
+	    		<value>S010002Gl</value>
+				<value>S040002Gl</value>
+				<value>S100002Gl</value>
+				<value>S600004Gl</value>
+				<value>S105001TpsGlTransOut</value>
+	    	</list>
+	    </property>
+	    <property name="outfilename" value="S9900MergeGl" />
+	</bean> -->
+
+</beans>

@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<beans default-lazy-init="false"
+	xmlns:p="http://www.springframework.org/schema/p"
+	xmlns="http://www.springframework.org/schema/beans"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:util="http://www.springframework.org/schema/util"
+	xmlns:jee="http://www.springframework.org/schema/jee"
+	xmlns:jms="http://www.springframework.org/schema/jms"
+	xsi:schemaLocation="http://www.springframework.org/schema/jee http://www.springframework.org/schema/jee/spring-jee-3.1.xsd
+		http://www.springframework.org/schema/jms http://www.springframework.org/schema/jms/spring-jms-3.1.xsd
+		http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.1.xsd
+		http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util-3.1.xsd
+		http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-3.1.xsd">
+		
+	<import resource="test-jpa.xml"/>
+	
+	<!-- 导入消息队列通用配置 -->
+	<import resource="classpath:/acm-sdk-mq-context.xml"/>
+
+	<!-- 导入BMP服务配置 -->
+	<import resource="classpath:/pcm-sdk-mq-context.xml"/>
+
+	<!-- 占位符 -->
+	<bean id="env" class="org.springframework.beans.factory.config.PropertiesFactoryBean">
+		<property name="locations" value="#{systemProperties['env.files'] ?: 'classpath:/dev/*.properties'}"/>
+	</bean>
+
+	<context:component-scan base-package="com.sunline.ccs.service"/>
+	<context:component-scan base-package="com.sunline.ccs.otb"/>
+	<!-- 加载facility的类 -->
+	<context:component-scan base-package="com.sunline.ccs.facility"/>
+	
+	<bean id="authorizationService" class="com.sunline.ppy.api.mock.AuthorizationServiceMock"></bean>
+	<bean class="com.sunline.ccs.service.busimpl.DownMsgFacilityMock"></bean>
+	<bean class="com.sunline.smsd.service.sdk.DownSmsServiceMock"></bean>
+	<bean id="mmCardService" class="com.sunline.ppy.api.mock.MPSCardServiceMock"></bean>
+	<bean id="mediumService" class="com.sunline.ppy.api.mock.MediumServiceMock"></bean>
+	
+	<!-- import resource="drools-context.xml"/-->
+</beans>

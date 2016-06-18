@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+		
+	<!-- 手工调额报表 -->
+	<bean id="abstractReportWriter" abstract="true" class="com.sunline.ark.batch.VariableMSReportFileItemWriter" > 
+		<property name="lineSeparator" value="\|" />
+		<property name="extensionFileName" value=".txt" /> 
+		<property name="validateFileName" value=".txt.ctrl" />
+	</bean>
+	<bean id="r8501" class="com.sunline.ark.batch.VariableFileItemReader"
+		scope="step">
+		<property name="lineSperator" value="\|" />
+		<property name="detailClass"
+			value="com.sunline.ppy.dictionary.exchange.AcctLmtAdjFile" />
+		<property name="resource" ref="resS8501LimitAdj" />
+	</bean>
+	<bean id="p8501" class="com.sunline.ccs.batch.cc1500.P1501AdjLimit" scope="step" />
+	<bean id="w8501" class="com.sunline.ark.batch.NullItemWriter" />
+</beans>

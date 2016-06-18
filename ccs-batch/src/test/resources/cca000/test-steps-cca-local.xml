@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+	
+	<bean id="a200AbstractRptWriter" abstract="true" class="com.sunline.ark.batch.VariableFileItemWriter"> 
+		<property name="lineSeparator" value="\|" />
+		<property name="extensionFileName" value=".txt" /> 
+		<property name="validateFileName" value=".txt.ctrl" />
+	</bean>
+	
+	<bean id="r1777" class="com.sunline.ark.batch.VariableFileItemReader" scope="step">
+		<description>文件读取测试</description>
+		<property name="lineSperator" value="\|" />
+		<property name="resource" ref="resS1777" />
+		<property name="detailClass" value="com.sunline.ccs.batch.cca000.FileItem" />
+	</bean>
+	<bean id="p1777" class="com.sunline.ccs.batch.cca000.FileProcessorTest"  scope="step" />
+	<bean id="w1777" class="com.sunline.ark.batch.NullItemWriter" scope="step" />
+	
+	<bean id="r1778" class="com.sunline.ark.batch.VariableFileItemReader" scope="step">
+		<description>文件读取测试</description>
+		<property name="lineSperator" value="\|" />
+		<property name="resource" ref="resS1778" />
+		<property name="detailClass" value="com.sunline.ccs.batch.cca000.BatchStatisticItem" />
+	</bean>
+	<bean id="w1778" class="com.sunline.ccs.batch.cca000.BatchStatisticWriter"  scope="step" />
+
+	
+</beans>

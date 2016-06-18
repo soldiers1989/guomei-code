@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<beans default-lazy-init="false"
+	xmlns:p="http://www.springframework.org/schema/p"
+	xmlns="http://www.springframework.org/schema/beans"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:util="http://www.springframework.org/schema/util"
+	xmlns:jee="http://www.springframework.org/schema/jee"
+	xmlns:jms="http://www.springframework.org/schema/jms"
+	xmlns:batch="http://www.springframework.org/schema/batch"
+	xmlns:task="http://www.springframework.org/schema/task"
+	xsi:schemaLocation="http://www.springframework.org/schema/jee http://www.springframework.org/schema/jee/spring-jee-3.1.xsd
+		http://www.springframework.org/schema/jms http://www.springframework.org/schema/jms/spring-jms-3.1.xsd
+		http://www.springframework.org/schema/task http://www.springframework.org/schema/task/spring-task-3.2.xsd
+		http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.1.xsd
+		http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util-3.1.xsd
+		http://www.springframework.org/schema/batch http://www.springframework.org/schema/batch/spring-batch.xsd
+		http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-3.1.xsd">
+
+
+	<!-- 导入步骤定义 -->
+	<import resource="test-steps-cca303.xml"/>
+	
+	<bean id="msRptFtpClientTemplate" class="com.sunline.ark.batch.FTPClientTemplate">
+		<property name="host" value="#{env.msFtphost}" />
+		<property name="userName" value="#{env.msFtpUserName}" />
+		<property name="password" value="#{env.msFtpPassword}" />
+	</bean>	
+	
+	<bean id="resA303PrepaymentRemainMsg" class="com.sunline.ark.batch.ResourceFactoryBean" scope="step">
+		<description>提前还款提醒短信文件</description>
+		<property name="resource" value="file:#{env.batchWorkDir}/#{new java.text.SimpleDateFormat('yyyyMMdd').format(batchStatusFacility.getBatchDate())}/PrepaymentRemainMsg" />
+	</bean>
+	
+	<!-- 用于支持并发批量的线程池 -->
+	<task:executor id="asyncTaskExecutor" pool-size="#{env['batchTaskPoolSize'] ?: 16}"/>
+	
+	<batch:job id="cca303">
+		<batch:step id="cca303LoanRpt">
+			<batch:description>放款合同报表文件</batch:description>
+			<batch:tasklet>
+				<batch:chunk reader="ra303" processor="pa303" writer="wa303"  commit-interval="#{env['commitInterval'] ?: 100}" />
+			</batch:tasklet>
+		</batch:step>
+	</batch:job>
+</beans>

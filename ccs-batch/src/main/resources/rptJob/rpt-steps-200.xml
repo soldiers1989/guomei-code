@@ -1,0 +1,225 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+	
+	<bean id="a200AbstractRptWriter" abstract="true" class="com.sunline.ark.batch.VariablePartitionFileItemWriter"> 
+		<property name="lineSeparator" value="\|" />
+		<property name="charset" value="GBK" />
+	</bean>
+	<!-- 翼支付提款还款文件格式 -->
+	<bean id="wa232AbstractRptWriter" abstract="true" class="com.sunline.ark.batch.VariableFileItemWriter"> 
+		<property name="lineSeparator" value="\|" />
+		<property name="containLastSeparator" value="false" />
+		<property name="extensionFileName" value=".txt" /> 
+		<property name="validateFileName" value=".txt.ctrl" />
+		<property name="charset" value="GBK" />
+	</bean>
+	
+	<bean id="ra201" class="com.sunline.ccs.batch.rpt.cca200.RA201LoanRpt" scope="step" />
+	<bean id="wa201" parent = "a200AbstractRptWriter" scope="step">
+		<description>放款合同报表文件</description>
+		<property name="fileDetailClass" value="com.sunline.ccs.batch.rpt.cca200.items.LoanRptItem" />
+		<property name="resource" ref="resA201LoanRpt"/>
+	</bean>	
+	
+	<bean id="ra202" class="com.sunline.ccs.batch.rpt.cca200.RA202LoanBalanceRpt" scope="step" />
+	<bean id="pa202" class="com.sunline.ccs.batch.rpt.cca200.PA202LoanBalanceRpt" scope="step"/>
+	<bean id="wa202" parent = "a200AbstractRptWriter" scope="step">
+		<description>贷款余额报表</description>
+		<property name="fileDetailClass" value="com.sunline.ccs.batch.rpt.cca200.items.LoanBalanceRptItem"/>
+		<property name="resource" ref="resA202LoanBalanceRpt"/>
+	</bean>	
+	
+	<bean id="ra203" class="com.sunline.ccs.batch.rpt.cca200.RA203LoanRecoveryRpt" scope="step" />
+	<bean id="wa203" parent = "a200AbstractRptWriter" scope="step">
+		<description>代位追偿报表文件</description>
+		<property name="fileDetailClass" value="com.sunline.ccs.batch.rpt.cca200.items.LoanRecoveryRptItem"/>
+		<property name="resource" ref="resA203LoanRecoveryRpt"/>
+	</bean>	
+	
+	<bean id="ra204" class="com.sunline.ccs.batch.rpt.cca200.RA204LoanSettlePayRpt" scope="step" />
+	<bean id="wa204" parent = "a200AbstractRptWriter" scope="step">
+		<description>结算支付(保费、提前还款违约金分成)报表文件</description>
+		<property name="fileDetailClass" value="com.sunline.ccs.batch.rpt.cca200.items.LoanSettlePayRptItem"/>
+		<property name="resource" ref="resA204LoanSettlePayRpt"/>
+	</bean>	
+	
+	<bean id="ra205" class="com.sunline.ccs.batch.rpt.cca200.RA205LoanSettleConfirmRpt" scope="step" />
+	<bean id="wa205" parent = "a200AbstractRptWriter" scope="step">
+		<description>理赔结果报表文件</description>
+		<property name="fileDetailClass" value="com.sunline.ccs.batch.rpt.cca200.items.LoanSettleConfirmRptItem"/>
+		<property name="resource" ref="resA205LoanSettleConfirmRpt"/>
+	</bean>	
+	
+	<bean id="ra206" class="com.sunline.ccs.batch.rpt.cca200.RA206LoanRepayRpt" scope="step" />
+	<bean id="wa206" parent = "a200AbstractRptWriter" scope="step">
+		<description>还款结果查询报表文件</description>
+		<property name="fileDetailClass" value="com.sunline.ccs.batch.rpt.cca200.items.LoanRepayRptItem"/>
+		<property name="resource" ref="resA206LoanRepayRpt"/>
+	</bean>	
+	
+	<bean id="ra207" class="com.sunline.ccs.batch.rpt.cca200.RA207LoanRecoveryPayRpt" scope="step"  />
+	<bean id="wa207" parent = "a200AbstractRptWriter" scope="step">
+		<description>还款结果查询报表文件</description>
+		<property name="fileDetailClass" value="com.sunline.ccs.batch.rpt.cca200.items.LoanRecoveryPayRptItem"/>
+		<property name="resource" ref="resA207LoanRecoveryPayRpt"/>
+	</bean>
+	
+	<bean id="ra211" class="com.sunline.ccs.batch.rpt.cca210.RA211MsLoanRpt" scope="step"  />
+	<bean id="wa211" parent = "a200AbstractRptWriter" scope="step"  >
+		<description>马上贷放款结果查询报表</description>
+		<property name="fileDetailClass" value="com.sunline.ccs.batch.rpt.cca210.item.MsLoanRptItem" />
+		<property name="resource" ref="resA211MsLoanRpt" />
+	</bean>
+	
+	<bean id="ra212" class="com.sunline.ccs.batch.rpt.cca210.RA212MsLoanRepayRpt" scope="step"  />
+	<bean id="wa212" parent="a200AbstractRptWriter" scope="step" >
+		<description>马上贷还款结果查询报表</description>
+		<property name="fileDetailClass" value="com.sunline.ccs.batch.rpt.cca210.item.MsLoanRepayRptItem" />
+		<property name="resource" ref="resA212MsLoanRepayRpt" />
+	</bean>
+	
+	<bean id="ra213" class="com.sunline.ccs.batch.rpt.cca210.RA213MsLoanBalanceRpt" scope="step"  />
+	<bean id="pa213" class="com.sunline.ccs.batch.rpt.cca210.PA213MsLoanBalanceRpt" scope="step"  />
+	<bean id="wa213" parent="a200AbstractRptWriter" scope="step" >
+		<description>马上贷贷款余额查询报表</description>
+		<property name="fileDetailClass" value="com.sunline.ccs.batch.rpt.cca210.item.MsLoanBalanceRptItem" />
+		<property name="resource" ref="resA213MsLoanBalanceRpt" />
+	</bean>
+	
+	<bean id="ra214" class="com.sunline.ccs.batch.rpt.cca210.RA214MsLoanAppWithYgInsRpt" scope="step" />
+	<bean id="wa214" parent="a200AbstractRptWriter" scope="step" >
+		<description>寿险客户统计日报表</description>
+		<property name="fileDetailClass" value="com.sunline.ccs.batch.rpt.cca210.item.MsLoanAppWithYgInsRptItem" />
+		<property name="resource" ref="resA214MsLoanAppWithYgInsRpt" />
+	</bean>
+	
+	<bean id="ra215" class="com.sunline.ccs.batch.rpt.cca210.RA215CooperationLoanBal"  scope="step" />
+	<bean id="wa215" parent="a200AbstractRptWriter" scope="step" >
+		<description>机构贷款余额</description>
+		<property name="fileDetailClass" value="com.sunline.ccs.batch.rpt.cca210.item.CooperationLoanBalItem" />
+		<property name="resource" ref="resA215CooperationLoanBal" />
+	</bean>
+	
+	<bean id="ra221" class="com.sunline.ccs.batch.rpt.cca220.RA221MCATLoanRpt"  scope="step" />
+	<bean id="wa221" parent = "a200AbstractRptWriter" scope="step"  >
+		<description>随借随还放款结果查询报表</description>
+		<property name="fileDetailClass" value="com.sunline.ccs.batch.rpt.cca220.item.MCATLoanRptItem" />
+		<property name="resource" ref="resA221MCATLoanRpt" />
+	</bean>
+	
+	<bean id="ra222" class="com.sunline.ccs.batch.rpt.cca220.RA222MCATLoanRepayRpt" scope="step"  />
+	<bean id="wa222" parent="a200AbstractRptWriter" scope="step" >
+		<description>随借随还还款结果查询报表</description>
+		<property name="fileDetailClass" value="com.sunline.ccs.batch.rpt.cca220.item.MCATLoanRepayRptItem" />
+		<property name="resource" ref="resA222MCATLoanRepayRpt" />
+	</bean>
+	
+	<bean id="ra223" class="com.sunline.ccs.batch.rpt.cca220.RA223MCATLoanBalanceRpt" scope="step"  />
+	<bean id="pa223" class="com.sunline.ccs.batch.rpt.cca220.PA223MCATLoanBalanceRpt" scope="step"  />
+	<bean id="wa223" parent="a200AbstractRptWriter" scope="step" >
+		<description>随借随还贷款余额查询报表</description>
+		<property name="fileDetailClass" value="com.sunline.ccs.batch.rpt.cca220.item.MCATLoanBalanceRptItem" />
+		<property name="resource" ref="resA223MCATLoanBalanceRpt" />
+	</bean>
+	
+	
+	<bean id="ra231" class="com.sunline.ccs.batch.rpt.cca230.RA231YZFContractStatusCompareFile" scope="step"></bean>
+	<bean id="pa231" class="com.sunline.ccs.batch.rpt.cca230.PA231YZFContractStatusCompareFile" scope="step"></bean>
+	<bean id="wa231" parent="a200AbstractRptWriter" scope="step" >
+		<description>翼支付合同状态对账文件</description>
+		<property name="detailClass" value="com.sunline.ccs.batch.rpt.cca230.items.YZFContractStatusCompareFileItem" />
+		<property name="resource" ref="resA231YZFContractStatusCompareFile" />
+	</bean>
+	
+	<bean id="ra232" class="com.sunline.ccs.batch.rpt.cca230.RA232YZFTransactionFlowFile" scope="step"  />
+	<bean id="pa232" class="com.sunline.ccs.batch.rpt.cca230.PA232YZFTransactionFlowFile" scope="step"  />
+	<bean id="wa232" parent="wa232AbstractRptWriter" scope="step" >
+	<description>生成每日向翼支付发送的提款还款报表</description>
+		<property name="detailClass" value="com.sunline.ccs.batch.rpt.cca230.items.YZFTransactionFlowFileItem" />
+		<property name="resource" ref="resA232YZFTransactionFlowFile" />
+	</bean>
+	
+	<bean id="ra241" class="com.sunline.ccs.batch.rpt.cca240.RA241CouponRepayRpt" scope="step"   />
+	<bean id="wa241" class="com.sunline.ark.batch.VariablePartitionFileItemWriter" scope="step"   >
+		<description>优惠券入账报表</description>
+		<property name="fileDetailClass" value="com.sunline.ccs.batch.rpt.cca240.item.CouponRepayRptItem"/>
+		<property name="resource" ref="resA241CouponRepayRpt"/>
+		<property name="lineSeparator" value="\|" />
+	</bean>
+	
+	<bean id="ra252" class="com.sunline.ccs.batch.rpt.cca250.RA252MsOrderCutExceptionRpt"  scope="step"  />
+	<bean id="wa252" parent="a200AbstractRptWriter" scope="step"  >
+		<description>收款异常报表</description>
+		<property name="fileDetailClass" value="com.sunline.ccs.batch.rpt.cca250.items.MsOrderCutExceptionRptItem" />
+		<property name="resource" ref="resA252MsOrderCutExceptionRpt" />
+	</bean>
+	
+	<bean id="ra253" class="com.sunline.ccs.batch.rpt.cca250.RA253MsOrderPayExceptionRpt" scope="step"  />
+	<bean id="wa253" parent="a200AbstractRptWriter" scope="step"  >
+		<description>付款异常报表</description>
+		<property name="fileDetailClass" value="com.sunline.ccs.batch.rpt.cca250.items.MsOrderPayExceptionRptItem" />
+		<property name="resource" ref="resA253MsOrderPayExceptionRpt" />
+	</bean>
+	
+	
+	
+	<bean id="ma200" class="com.sunline.ark.batch.VariableFileMergerTasklet" >
+		<property name="taskExecutor" ref="asyncTaskExecutor"/>
+		<property name="pollInterval" value="#{env['pollInterval']?:2000}" />
+		<property name="resources" >
+			<list>
+				<ref bean="resA201LoanRpt"/>
+				<ref bean="resA202LoanBalanceRpt"/>
+				<ref bean="resA203LoanRecoveryRpt"/>
+				<ref bean="resA204LoanSettlePayRpt"/>
+				<ref bean="resA205LoanSettleConfirmRpt"/>
+				<ref bean="resA206LoanRepayRpt"/>
+				<ref bean="resA207LoanRecoveryPayRpt"/>
+				<ref bean="resA211MsLoanRpt"/>
+				<ref bean="resA212MsLoanRepayRpt"/>
+				<ref bean="resA213MsLoanBalanceRpt"/>
+				<ref bean="resA214MsLoanAppWithYgInsRpt"/>
+				<ref bean="resA215CooperationLoanBal"/>
+				<ref bean="resA221MCATLoanRpt"/>
+				<ref bean="resA222MCATLoanRepayRpt"/>
+				<ref bean="resA223MCATLoanBalanceRpt"/>
+				<ref bean="resA252MsOrderCutExceptionRpt"/>
+				<ref bean="resA253MsOrderPayExceptionRpt"/>
+				<ref bean="resA241CouponRepayRpt"/>
+			</list>
+		</property>
+		<property name="fileSuffix" value=".txt" />
+		<property name="valiFileSuffix" value=".txt.ctrl" />
+		<property name="lineSeparator" value="|" />
+		
+	</bean>
+	
+	<bean id="oa291" class="com.sunline.ccs.batch.rpt.cca290.OA291SendYGFile">
+		<property name="ftpOperations" ref="ygFtpClientTemplate"/> 
+	</bean>
+	
+	<bean id="oa292" class="com.sunline.ccs.batch.rpt.cca290.OA292SendMsRpt">
+		<property name="ftpOperations" ref="msRptFtpClientTemplate"/>
+	</bean>
+	
+	<!-- 翼支付ftp -->
+	<bean id="oa293" class="com.sunline.ccs.batch.rpt.cca290.OA293SendYZFRpt">
+		<property name="ftpOperations" ref="yzfRptFtpClientTemplate"/>
+		<property name="resource">
+			<list>
+				<ref bean="resA232YZFTransactionFlowFile" />
+			</list>
+		</property>
+		<property name="extensionFileName" value=".txt" />
+		
+		<property name="extensionFileNameCtrl" value=".txt.ctrl" />
+	</bean>
+	<bean id="yzfRptFtpClientTemplate" class="com.sunline.ccs.ftp.FtpUtil">
+		<property name="hostname" value="#{env.YZFFtp}" />
+		<property name="username" value="#{env.YZFFtpUser}" />
+		<property name="password" value="#{env.YZFFtpPass}" />
+		<property name="port" value="22" />
+	</bean>
+</beans>

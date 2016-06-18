@@ -1,0 +1,252 @@
+package com.sunline.ccs.service.authroization
+ 
+import java.util.Map;
+import com.sunline.ccs.param.def.enums.AuthReason;
+import com.sunline.ccs.param.def.enums.AuthAction;
+import com.sunline.ccs.param.def.AuthProduct;
+import com.sunline.ccs.param.def.enums.CheckType;
+import com.sunline.ppy.dictionary.enums.Indicator;
+import com.sunline.ppy.dictionary.enums.AuthTransType;
+import com.sunline.ccs.param.def.enums.AuthTransTerminal;
+import com.sunline.ccs.infrastructure.shared.model.CcsCardO;
+import com.sunline.ccs.service.auth.context.TxnInfo;
+import com.sunline.ccs.infrastructure.shared.model.CcsAcctO;
+import com.sunline.ccs.service.auth.context.CupMsg;
+import com.sunline.ppy.dictionary.enums.ManualAuthFlag;
+
+import org.slf4j.Logger;
+global Map<AuthReason, AuthAction> result;
+
+
+
+rule "[Vel_001] [消费]当期消费金额检查"
+	
+	when
+		TxnInfo( checkList contains "Vel_001" )
+		//授权产品参数里，当期消费金额检查标志为true
+		$authProduct : AuthProduct(checkEnabled[CheckType.CheckCycleLimit] ) 
+		//必须是消费交易 
+		TxnInfo( transType == AuthTransType.Auth || transType == AuthTransType.AgentDebit || transType == AuthTransType.PreAuth || transType == AuthTransType.Load )
+		//周期消费限额 ,当期消费金额
+		CcsCardO($cycleRetailLmt:cycleRetailLmt , $ctdUsedAmt:ctdUsedAmt ) 
+		//当期消费金额 +交易金额 > 周期消费限额 
+		TxnInfo(transAmt + $ctdUsedAmt > $cycleRetailLmt ) 
+		$logger : Logger()	
+	then	
+		$logger.debug("# drools-rule:[Vel_001]-F006");
+		result.put(AuthReason.F006, $authProduct.reasonActions.get(AuthReason.F006));
+end
+
+rule "[Vel_002] [取现]当期取现金额检查"
+	
+	when
+		TxnInfo( checkList contains "Vel_002" )
+		//授权产品参数里，当期取现金额检查标志为true
+		$authProduct : AuthProduct(checkEnabled[CheckType.CheckCycleCashLimit]) 
+		//必须是取现交易 
+		TxnInfo(transType == AuthTransType.Cash || transType == AuthTransType.TransferDeditDepos ) 
+		//周期取现限额 ,当期取现金额 
+		CcsCardO($cycleCashLmt:cycleCashLmt , $ctdCashAmt:ctdCashAmt) 
+		//当期取现金额   +交易金额 > 周期取现限额
+		TxnInfo( transAmt + $ctdCashAmt > $cycleCashLmt ) 
+		not(
+			CupMsg(field(25) == "64" )
+			and
+			TxnInfo( manualAuthFlag != ManualAuthFlag.N )
+			)
+		$logger : Logger()	
+	then	
+		$logger.debug("# drools-rule:[Vel_002]-F022");
+		result.put(AuthReason.F022, $authProduct.reasonActions.get(AuthReason.F022));
+end
+
+rule "[Vel_003] [消费]当期网银交易金额检查"
+	
+	when
+		TxnInfo( checkList contains "Vel_003" )
+		//授权产品参数里，当期网银交易金额检查标志为true
+		$authProduct : AuthProduct(checkEnabled[CheckType.CheckCycleNetLimit]) 
+		//必须是消费交易， 且是网银交易
+		TxnInfo((transType == AuthTransType.Auth || transType == AuthTransType.PreAuth ||transType == AuthTransType.AgentDebit), isInternetTrans()) 
+		//网银周期消费限额 ，网银当期交易金额 
+		CcsCardO($cycleNetLmt:cycleNetLmt , $ctdNetAmt:ctdNetAmt)
+		//网银当期交易金额   +交易金额 > 网银周期消费限额
+		TxnInfo( $ctdNetAmt + transAmt > $cycleNetLmt )  
+		$logger : Logger()	
+	then	
+		$logger.debug("# drools-rule:[Vel_003]-F034");
+		result.put(AuthReason.F034, $authProduct.reasonActions.get(AuthReason.F034));
+end
+
+rule "[Vel_004] 单日ATM取现限额检查"
+	
+	when
+		TxnInfo( checkList contains "Vel_004" )
+		 
+		$authProduct : AuthProduct()
+		//必须是取现交易  ，且是ATM取现
+		TxnInfo(transType == AuthTransType.Cash || transType == AuthTransType.TransferDeditDepos, transTerminal == AuthTransTerminal.ATM ,$dayAtmLimit:dayAtmLimit )
+		//单日ATM交易金额
+		CcsCardO($dayUsedAtmAmt : dayUsedAtmAmt )
+		//当天ATM交易金额   +当笔交易金额 > 单日ATM消费限额
+		TxnInfo( $dayUsedAtmAmt + chbTransAmt > $dayAtmLimit )  
+		$logger : Logger()	
+	then	
+		$logger.debug("# drools-rule:[Vel_004]-F014");
+		result.put(AuthReason.F014, $authProduct.reasonActions.get(AuthReason.F014));
+end
+
+rule "[Vel_005] 单日ATM取现限笔检查"
+	
+	when
+		TxnInfo( checkList contains "Vel_005" )
+		 
+		$authProduct : AuthProduct()
+		//必须是取现交易，且是ATM取现
+		TxnInfo( transType == AuthTransType.Cash || transType == AuthTransType.TransferDeditDepos, transTerminal == AuthTransTerminal.ATM ,$dayAtmNbr:dayAtmNbr )
+		//单日ATM交易笔数
+		CcsCardO( $dayUsedAtmNbr : dayUsedAtmNbr)
+		//当天ATM交易笔数   +1 > 单日ATM消费限笔
+		TxnInfo( $dayUsedAtmNbr +1 > $dayAtmNbr )  
+		$logger : Logger()	
+	then	
+		$logger.debug("# drools-rule:[Vel_005]-F013");
+		result.put(AuthReason.F013, $authProduct.reasonActions.get(AuthReason.F013));
+end
+
+rule "[Vel_006] 单日取现限额检查"
+	
+	when
+		TxnInfo( checkList contains "Vel_006" )
+		 
+		$authProduct : AuthProduct()
+		//必须是取现交易
+		TxnInfo(transType == AuthTransType.Cash || transType == AuthTransType.TransferDeditDepos, $dayCashAmtLmt : dayCashAmtLmt )
+		//单日取现金额
+		CcsCardO($dayUsedCashAmt : dayUsedCashAmt )
+		//当天取现金额   +当笔交易金额 > 单日取现限额
+		TxnInfo( $dayUsedCashAmt + chbTransAmt > $dayCashAmtLmt)  
+		not(
+			CupMsg(field(25) == "64" )
+			and
+			TxnInfo( manualAuthFlag != ManualAuthFlag.N )
+			)
+		$logger : Logger()	
+	then	
+		$logger.debug("# drools-rule:[Vel_006]-F018");
+		result.put(AuthReason.F018, $authProduct.reasonActions.get(AuthReason.F018));
+end
+
+rule "[Vel_007] 单日取现限笔检查"
+	
+	when
+		TxnInfo( checkList contains "Vel_007" )
+		 
+		$authProduct : AuthProduct()
+		//必须是取现交易
+		TxnInfo(transType == AuthTransType.Cash || transType == AuthTransType.TransferDeditDepos, $dayCshNbrLimit : dayCshNbrLimit )
+		//单日取现笔数
+		CcsCardO( $dayUsedCashNbr : dayUsedCashNbr)
+		//当天取现笔数   +1 > 单日取现限笔
+		TxnInfo( $dayUsedCashNbr + 1 > $dayCshNbrLimit )  
+		not(
+			CupMsg(field(25) == "64" )
+			and
+			TxnInfo( manualAuthFlag != ManualAuthFlag.N )
+			)
+		$logger : Logger()	
+	then	
+		$logger.debug("# drools-rule:[Vel_007]-F017");
+		result.put(AuthReason.F017, $authProduct.reasonActions.get(AuthReason.F017));
+end
+
+rule "[Vel_008] 单日消费限额检查"
+	
+	when
+		TxnInfo( checkList contains "Vel_008" )
+		 
+		$authProduct : AuthProduct()
+		//必须是消费交易
+		TxnInfo((transType == AuthTransType.Auth || transType == AuthTransType.AgentDebit ||transType == AuthTransType.PreAuth || transType == AuthTransType.Load ), $dayRetailAmtLmt :  dayRetailAmtLmt )
+		//单日消费金额
+		CcsCardO($dayUsedRetailAmt : dayUsedRetailAmt )
+		//当天消费金额   +当笔交易金额 > 单日消费限额
+		TxnInfo( $dayUsedRetailAmt + chbTransAmt > $dayRetailAmtLmt)  
+		$logger : Logger()
+	then
+		$logger.debug("# drools-rule:[Vel_008]-F043");
+		result.put(AuthReason.F043, $authProduct.reasonActions.get(AuthReason.F043));
+end
+
+rule "[Vel_009] 单日消费限笔检查"
+	
+	when
+		TxnInfo( checkList contains "Vel_009" )
+		 
+		$authProduct : AuthProduct()
+		//必须是消费交易
+		TxnInfo((transType == AuthTransType.Auth || transType == AuthTransType.AgentDebit ||transType == AuthTransType.PreAuth || transType == AuthTransType.Load ), $dayRetailNbrLmt : dayRetailNbrLmt )
+		//单日消费笔数
+		CcsCardO( $dayUsedRetailNbr : dayUsedRetailNbr)
+		//当天消费笔数   +1 > 单日消费限笔
+		TxnInfo( $dayUsedRetailNbr +1 > $dayRetailNbrLmt )  
+		$logger : Logger()	
+	then	
+		$logger.debug("# drools-rule:[Vel_009]-F042");
+		result.put(AuthReason.F042, $authProduct.reasonActions.get(AuthReason.F042));
+end
+
+rule "[Vel_010] 银联境外单日atm取现检查"
+	
+	when
+		TxnInfo( checkList contains "Vel_010" )
+		$authProduct : AuthProduct()
+		// 渠道 == 银联 , 类型 == ATM取现  , 银联境外免验 == true(true：免验)
+		TxnInfo( inputSource == InputSource.CUP, transType == AuthTransType.Cash || transType == AuthTransType.TransferDeditDepos, transTerminal == AuthTransTerminal.ATM, cupXborder )
+		// 银联境外atm单日累计额
+		CcsCardO( $dayUsedAtmCupxbAmt : dayUsedAtmCupxbAmt)
+		// 当笔交易金额  + 银联境外atm单日累计额  > 产品层银联境外atm单日累计限额
+		TxnInfo( chbTransAmt + $dayUsedAtmCupxbAmt > dayCupxbAtmLimit )
+		$logger : Logger()
+	then	
+		$logger.debug("# drools-rule:[Vel_010]-F044");
+		result.put(AuthReason.F044, $authProduct.reasonActions.get(AuthReason.F044));
+end
+
+
+/*rule "[97] 单日转出限额检查（2期）"
+	
+	when
+		TxnInfo( checkList contains "xx" )
+		 
+		$authProduct : AuthProduct()
+		//必须是取现交易
+		TxnInfo(transType == AuthTransType.Cash || transType == AuthTransType.TransferDeditDepos , $dayXfroutAmtLimit :  dayXfroutAmtLimit )
+		//单日取现金额
+		CcsCardO($dayUsedXfroutAmt : dayUsedXfroutAmt )
+		//当天取现金额   +当笔交易金额 > 单日取现限额
+		TxnInfo( $dayUsedXfroutAmt + chbTransAmt > $dayXfroutAmtLimit)  
+		$logger : Logger()	
+	then	
+		$logger.debug("# drools-rule:[Gen_002]-");
+		result.put(AuthReason.F018, $authProduct.reasonActions.get(AuthReason.F018))
+end*/
+
+
+/*rule "[98] 单日转出限笔检查（2期）"
+	
+	when
+		TxnInfo( checkList contains "xx" )
+		 
+		$authProduct : AuthProduct()
+		//必须是取现交易
+		TxnInfo(transType == AuthTransType.Cash || transType == AuthTransType.TransferDeditDepos ,$dayXfroutNbrLimit : dayXfroutNbrLimit )
+		//单日取现笔数
+		CcsCardO( $dayUsedXfroutNbr : dayUsedXfroutNbr)
+		//当天取现笔数   +1 > 单日取现限笔
+		TxnInfo( $dayUsedXfroutNbr +1 > $dayXfroutNbrLimit )  
+		$logger : Logger()	
+	then	
+		$logger.debug("# drools-rule:[Gen_002]-");
+		result.put(AuthReason.F017, $authProduct.reasonActions.get(AuthReason.F017))
+end*/

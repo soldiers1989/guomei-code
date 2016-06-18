@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+	
+	<bean id="ygAbstractWriter" abstract="true" class="com.sunline.ark.batch.VariablePartitionFileItemWriter"> 
+		<property name="containLastSeparator" value="true" />
+		<property name="charset" value="GBK" />
+	</bean>
+	
+	<!-- 放款/贷款明细 -->
+	<bean id="ra001" class="com.sunline.ccs.batch.rpt.cca000.RA001YGLoanDetail" scope="step" />         
+	<bean id="pa001" class="com.sunline.ccs.batch.rpt.cca000.PA001YGLoanDetail" scope="step"/>          
+	<bean id="wa001" parent="ygAbstractWriter" scope="step"> 
+		<property name="resource" ref="resSA001YGLoanDetail"/> 
+		<property name="fileDetailClass" value="com.sunline.ccs.batch.rpt.cca000.items.YGLoanDetailItem" /> 
+		
+	</bean>
+
+	<!-- 贷款期供 -->
+	<bean id="ra002" class="com.sunline.ccs.batch.rpt.cca000.RA002YGRpyPlan" scope="step" />         
+	<bean id="wa002" parent="ygAbstractWriter" scope="step"> 
+		<property name="resource" ref="resSA002YGRpyPlan"/> 
+		<property name="fileDetailClass" value="com.sunline.ccs.batch.rpt.cca000.items.YGRpyPlanItem" /> 
+	</bean>
+
+	<!-- 贷款还款信息 -->
+	<bean id="ra003" class="com.sunline.ccs.batch.rpt.cca000.RA003YGRpyDetail" scope="step" />          
+	<bean id="pa003" class="com.sunline.ccs.batch.rpt.cca000.PA003YGRpyDetail" scope="step"/>          
+	<bean id="wa003" parent="ygAbstractWriter" scope="step"> 
+		<property name="resource" ref="resSA003YGRpyDetail"/> 
+		<property name="fileDetailClass" value="com.sunline.ccs.batch.rpt.cca000.items.YGRpyDetailItem" /> 
+	</bean>
+
+	<!-- 保费期供 -->
+	<bean id="ra004" class="com.sunline.ccs.batch.rpt.cca000.RA004YGInsuredAmtStatus" scope="step" />          
+	<bean id="wa004" parent="ygAbstractWriter" scope="step"> 
+		<property name="resource" ref="resSA004YGInsuredAmtStatus"/> 
+		<property name="fileDetailClass" value="com.sunline.ccs.batch.rpt.cca000.items.YGInsuredAmtStatusItem" /> 
+	</bean>
+
+	<!-- 保费还款 -->
+	<bean id="ra005" class="com.sunline.ccs.batch.rpt.cca000.RA005YGInsuredAmtRpyInfo" scope="step"/>          
+	<bean id="pa005" class="com.sunline.ccs.batch.rpt.cca000.PA005YGInsuredAmtRpyInfo" scope="step"/>          
+	<bean id="wa005" parent="ygAbstractWriter" scope="step"> 
+		<property name="resource" ref="resSA005YGInsuredAmtRpyInfo"/> 
+		<property name="fileDetailClass" value="com.sunline.ccs.batch.rpt.cca000.items.YGInsuredAmtRpyInfoItem" /> 
+	</bean>
+
+	<!-- 预理赔 -->
+	<bean id="ra006" class="com.sunline.ccs.batch.rpt.cca000.RA006YGClaimInfo" scope="step"/>          
+	<bean id="pa006" class="com.sunline.ccs.batch.rpt.cca000.PA006YGClaimInfo" scope="step"/>          
+	<bean id="wa006" parent="ygAbstractWriter" scope="step"> 
+		<property name="resource" ref="resSA006YGClaimInfo"/> 
+		<property name="fileDetailClass" value="com.sunline.ccs.batch.rpt.cca000.items.YGClaimInfoItem" /> 
+	</bean>
+
+	<!-- 理赔处理结果 -->
+	<bean id="ra007" class="com.sunline.ccs.batch.rpt.cca000.RA007YGConfirmClaimInfo" scope="step"/>         
+	<bean id="wa007" parent="ygAbstractWriter" scope="step"> 
+		<property name="resource" ref="resSA007YGConfirmClaimInfo"/> 
+		<property name="fileDetailClass" value="com.sunline.ccs.batch.rpt.cca000.items.YGConfirmClaimInfoItem" /> 
+	</bean>
+
+	<!-- 提前还款时所收违约金信息 -->
+	<bean id="ra008" class="com.sunline.ccs.batch.rpt.cca000.RA008YGPenalInfo" scope="step"/>          
+	<bean id="wa008" parent="ygAbstractWriter" scope="step"> 
+		<property name="resource" ref="resSA008YGPenalInfo"/> 
+		<property name="fileDetailClass" value="com.sunline.ccs.batch.rpt.cca000.items.YGPenalInfoItem" /> 
+	</bean>
+
+	<!-- 对账文件 -->
+	<bean id="ra009" class="com.sunline.ccs.batch.rpt.cca000.RA009YGStatInfo" scope="step"/>          
+	<bean id="pa009" class="com.sunline.ccs.batch.rpt.cca000.PA009YGStatInfo" scope="step"/>          
+	<bean id="wa009" parent="ygAbstractWriter" scope="step"> 
+		<property name="resource" ref="resSA009YGStatInfo"/> 
+		<property name="fileDetailClass" value="com.sunline.ccs.batch.rpt.cca000.items.YGStatInfoItem" /> 
+	</bean>
+	
+	<bean id="ma000" class="com.sunline.ark.batch.VariableFileMergerTasklet">
+		<property name="taskExecutor" ref="asyncTaskExecutor"/>
+		<property name="pollInterval" value="#{env['pollInterval']?:2000}" />
+		<property name="resources" >
+			<list>
+				<ref bean="resSA001YGLoanDetail"/>
+				<ref bean="resSA002YGRpyPlan" />
+				<ref bean="resSA003YGRpyDetail" />
+				<ref bean="resSA004YGInsuredAmtStatus" />
+				<ref bean="resSA005YGInsuredAmtRpyInfo" />
+				<ref bean="resSA006YGClaimInfo" />
+				<ref bean="resSA007YGConfirmClaimInfo" />
+				<ref bean="resSA008YGPenalInfo" />
+				<ref bean="resSA009YGStatInfo" />
+			</list>
+		</property>
+		<property name="fileSuffix" value=".txt" />
+		<property name="valiFileSuffix" value=".txt.ctrl" />
+	</bean>
+	
+</beans>

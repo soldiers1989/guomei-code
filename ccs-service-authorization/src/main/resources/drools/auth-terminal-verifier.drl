@@ -1,0 +1,30 @@
+package com.sunline.ccs.service.authroization
+ 
+import java.util.Map;
+import com.sunline.ccs.param.def.enums.AuthReason;
+import com.sunline.ccs.param.def.enums.AuthAction;
+import com.sunline.ccs.param.def.AuthProduct;
+import com.sunline.ppy.api.MediumInfo;
+import com.sunline.ppy.dictionary.enums.BlackWhiteCode;
+import com.sunline.ccs.param.def.enums.AuthFlagAction;
+import com.sunline.ccs.param.def.enums.AuthTransTerminal;
+import com.sunline.ppy.dictionary.enums.PasswordVerifyResult;
+import com.sunline.ccs.service.auth.context.TxnInfo;
+
+import org.slf4j.Logger;
+global Map<AuthReason, AuthAction> result;
+
+rule "[Ter_001] 检验交易终端"
+	/*
+	*	根据交易终端类型，取产品参数对应的行动标志。 
+	*	行动标志 = No(不支持)
+	*/
+	when
+		TxnInfo( checkList contains "Ter_001" )
+		TxnInfo( $transTerminal : transTerminal )
+		$authProduct : AuthProduct(terminalEnabled[$transTerminal] == AuthFlagAction.No)
+		$logger : Logger()	
+	then	
+		$logger.debug("# drools-rule:[Ter_001]-TS01");
+		result.put( AuthReason.TS01, $authProduct.reasonActions.get(AuthReason.TS01) );
+end

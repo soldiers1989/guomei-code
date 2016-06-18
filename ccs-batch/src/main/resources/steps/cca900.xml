@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+
+	<!-- 批量完成，合并短信文件 -->	
+	<bean id="mergeSmsFile" class="com.sunline.ccs.batch.common.SimpleFileMergeTasklet" >
+		<property name="sources">
+			<list>
+				<ref bean="resA300RepaymentFailMsg" />
+				<ref bean="resA301MSLoanRepayMsg" />
+				<ref bean="resA302WhiteListRepayMsg" />
+				<ref bean="resS8502AcctCrlmtAdjMsg" />
+				<ref bean="resA303PrepaymentRemainMsg" />
+				<ref bean="resA304RefundMsg" />
+				<ref bean="resA305BatchCutSuccessMsg" />
+			</list>
+		</property>
+		<property name="target" ref="resCca900MSxfSmsFile" />
+		<property name="isEndOfNewLine" value="true" />
+	</bean>
+	
+	<!-- 批量完成，通知短信平台 -->	
+	<bean id="sendBatchSmsTask" class="com.sunline.ccs.batch.cca900.SendBatchSmsTasklet">
+		<property name="fileName" value="MSxfSmsFile.txt" />
+	</bean>
+	<!-- 批量完成，通知数据平台 -->		
+	<bean id="sendMessageTask" class="com.sunline.ccs.batch.cca900.SendMessageTasklet" />
+	
+</beans>

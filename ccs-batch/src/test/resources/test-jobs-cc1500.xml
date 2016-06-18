@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<beans default-lazy-init="false" xmlns:p="http://www.springframework.org/schema/p"
+	xmlns="http://www.springframework.org/schema/beans" xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:util="http://www.springframework.org/schema/util"
+	xmlns:jee="http://www.springframework.org/schema/jee" xmlns:jms="http://www.springframework.org/schema/jms"
+	xmlns:batch="http://www.springframework.org/schema/batch" xmlns:task="http://www.springframework.org/schema/task"
+	xsi:schemaLocation="http://www.springframework.org/schema/jee http://www.springframework.org/schema/jee/spring-jee-3.1.xsd
+		http://www.springframework.org/schema/jms http://www.springframework.org/schema/jms/spring-jms-3.1.xsd
+		http://www.springframework.org/schema/task http://www.springframework.org/schema/task/spring-task-3.2.xsd
+		http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.1.xsd
+		http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util-3.1.xsd
+		http://www.springframework.org/schema/batch http://www.springframework.org/schema/batch/spring-batch.xsd
+		http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-3.1.xsd">
+
+
+	<!-- 用于支持并发批量的线程池 -->
+	<task:executor id="asyncTaskExecutor" pool-size="#{env['batchTaskPoolSize'] ?: 16}" />
+	
+	<import resource="test-steps-cc1500.xml"/>
+
+	<batch:step id="stepTemplate" abstract="true">
+		<batch:listeners>
+			<batch:listener>
+				<bean class="com.sunline.ark.batch.DebugSupportListener" />
+			</batch:listener>
+		</batch:listeners>
+	</batch:step>
+	<batch:job id="ccsCrlmtOPAdj">
+		<batch:step parent="stepTemplate" id="resp-file-wait">
+			<batch:tasklet ref="respFileWait" />
+		</batch:step>
+		<batch:step parent="stepTemplate" id="resp-file-down">
+			<batch:tasklet ref="respFileDownload" />
+		</batch:step>
+	</batch:job>
+</beans>

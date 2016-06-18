@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+	<!-- 翼支付ftp -->
+	<bean id="yzfRptFtpClientTemplate" class="com.sunline.ark.batch.FTPClientTemplate">
+		<property name="host" value="#{env.YZFFtp}" />
+		<property name="userName" value="#{env.YZFFtpUser}" />
+		<property name="password" value="#{env.YZFFtpPass}" />
+	</bean>
+	<!-- 翼支付文件格式配置 -->
+	<bean id="a200AbstractRptWriter" abstract="true" class="com.sunline.ark.batch.VariableFileItemWriter"> 
+		<property name="lineSeparator" value="\|" />
+		<property name="containLastSeparator" value="false" />
+		<property name="extensionFileName" value=".txt" /> 
+		<!-- <property name="validateFileName" value=".txt.ctrl" /> -->
+		<property name="charset" value="GBK" />
+	</bean>
+	<bean id="oa293" class="com.sunline.ccs.batch.rpt.cca290.OA293SendYZFRpt">
+		<property name="ftpOperations" ref="yzfRptFtpClientTemplate"/>
+		<property name="resource">
+			<list>
+				<ref bean="resA232YZFTransactionFlowFile" />
+			</list>
+		</property>
+		<property name="extensionFileName" value=".txt" />
+		<property name="extensionFileNameCtrl" value=".ctrl" />
+	</bean>
+
+	<bean id="ra232" class="com.sunline.ccs.batch.rpt.cca230.RA232YZFTransactionFlowFile" scope="step"  />
+	<bean id="pa232" class="com.sunline.ccs.batch.rpt.cca230.PA232YZFTransactionFlowFile" scope="step"  />
+	<bean id="wa232" parent="a200AbstractRptWriter" scope="step" >
+	<description>生成每日向翼支付发送的提款还款报表(当前文件还只是存在应用服务器，还未传到翼支付)</description>
+		<property name="detailClass" value="com.sunline.ccs.batch.rpt.cca230.items.YZFTransactionFlowFileItem" />
+		<property name="resource" ref="resA232YZFTransactionFlowFile" />
+	</bean>
+</beans>

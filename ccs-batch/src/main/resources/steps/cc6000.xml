@@ -1,0 +1,309 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+
+	<bean id="r6001" class="com.sunline.ccs.batch.cc6000.R6000AcctInfo" scope="step"/>
+
+	<bean id="p6001" class="org.springframework.batch.item.support.CompositeItemProcessor">
+		<property name="delegates">
+			<list>
+				<bean class="com.sunline.ccs.batch.cc6000.P6000SetOrganization"/>
+ 				<bean class="com.sunline.ccs.batch.cc6000.P6004InitializeAcctUsage"/>
+				<bean class="com.sunline.ccs.batch.cc6000.P6007InterestAcruFillUp"/>
+				<bean class="com.sunline.ccs.batch.cc6000.P6008PenaltyAcruFillUp"/>
+				<bean class="com.sunline.ccs.batch.cc6000.P6009MCATCoupon"/>
+				<bean class="com.sunline.ccs.batch.cc6000.P6010TxnPosting"/>
+				<bean class="com.sunline.ccs.batch.cc6000.P6040DepositHierarchy"/>
+				<bean class="com.sunline.ccs.batch.cc6000.P6012PointsPosting"/>
+				<bean class="com.sunline.ccs.batch.cc6000.P6014AutoLoanR"/>
+  				<bean class="com.sunline.ccs.batch.cc6000.P6017MoveDue"/>
+  				<bean class="com.sunline.ccs.batch.cc6000.P6018AcctAge"/>  
+				<bean class="com.sunline.ccs.batch.cc6000.P6020LoanTransfer"/>
+				<bean class="com.sunline.ccs.batch.cc6000.P6022InterestAcruToday"/>
+				<bean class="com.sunline.ccs.batch.cc6000.P6023PenaltyAccuPerDay"/>
+				<bean class="com.sunline.ccs.batch.cc6000.P6025McLoanTransfer"/>
+				<bean class="com.sunline.ccs.batch.cc6000.P6026MCEICoupon"/>
+				<bean class="com.sunline.ccs.batch.cc6000.P6027InterestGraceWaive"/>
+				<bean class="com.sunline.ccs.batch.cc6000.P6030GenerateOverLimitFee"/>
+				<bean class="com.sunline.ccs.batch.cc6000.P6032GenerateMessageFee"/>
+				<bean class="com.sunline.ccs.batch.cc6000.P6034GenerateLateChargeFee"/>
+				<bean class="com.sunline.ccs.batch.cc6000.P6035GenerateReplaceLateChargeFee"/>
+				<bean class="com.sunline.ccs.batch.cc6000.P6037InterestStatement"/>
+				<bean class="com.sunline.ccs.batch.cc6000.P6040DepositHierarchy"/>
+				<bean class="com.sunline.ccs.batch.cc6000.P6043ComputeDue"/>
+				<!-- 如果账龄提升日是账单日的情况下，账龄需要在两个步骤之后都执行一次 -->
+				<bean class="com.sunline.ccs.batch.cc6000.P6018AcctAge"/>  
+				<bean class="com.sunline.ccs.batch.cc6000.P6047GenerateStatement"/>
+				<bean class="com.sunline.ccs.batch.cc6000.P6050GenerateDirectDebit"/>
+				<bean class="com.sunline.ccs.batch.cc6000.P6053GenerateTxnGl"/>
+				<bean class="com.sunline.ccs.batch.cc6000.P6056GenerateBnpSum"/>
+				<bean class="com.sunline.ccs.batch.cc6000.P6058Collection"/>
+				<bean class="com.sunline.ccs.batch.cc6000.P6060AuthMemo"/>
+				<bean class="com.sunline.ccs.batch.cc6000.P6067UpdateAcct"/>
+				<bean class="com.sunline.ccs.batch.cc6000.P6068UpdateData"/>
+				<bean class="com.sunline.ccs.batch.cc6000.P6069UpdatePlanCompst" />
+				<bean class="com.sunline.ccs.batch.cc6000.P6063GenerateAcctUpdateList"/>
+				<bean class="com.sunline.ccs.batch.cc6000.P6001CheckData"/>
+			</list>
+		</property>
+	</bean>
+	
+	<!-- FIXME 增加输出步骤以及改正batchNumber -->
+	
+	<!-- 约定还款扣款文件 -->
+	<!-- <bean id="w6000DdRequestItemList" class="com.sunline.acm.service.sdk.BatchFileWriter" scope="step">
+		<property name="charset" value="GBK"/>
+		<property name="fileDetailClass" value="com.sunline.ppy.dictionary.exchange.DdRequestInterfaceItem"/>
+		<property name="filename" value="S600001DdRequestItemList"/>
+	</bean>
+	催收接口文件
+	<bean id="w6000CollectionItem" class="com.sunline.acm.service.sdk.BatchFileWriter" scope="step">
+		<property name="charset" value="GBK"/>
+		<property name="fileDetailClass" value="com.sunline.ppy.dictionary.exchange.CollectionItem"/>
+		<property name="filename" value="S600002CollectionItem"/>
+	</bean>
+	账单统计信息文件
+	<bean id="w6000Stmt" class="com.sunline.acm.service.sdk.BatchFileWriter" scope="step">
+		<property name="fileDetailClass" value="com.sunline.ppy.dictionary.exchange.StmtInterfaceItem"/>
+		<property name="filename" value="S600003Stmt"/>
+	</bean>
+	总账交易流水文件
+	<bean id="w6000GlTxnItemList" class="com.sunline.acm.service.sdk.BatchFileWriter" scope="step">
+		<property name="fileDetailClass" value="com.sunline.ppy.dictionary.exchange.GlTxnItem"/>
+		<property name="filename" value="S600004Gl"/>
+	</bean> -->
+	
+	<!-- file -->
+	<bean id="w6000DdRequestItemList" class="com.sunline.ark.batch.VariablePartitionFileItemWriter" scope="step">
+		<description>约定还款扣款文件 </description>
+		<property name="fileDetailClass" value="com.sunline.ppy.dictionary.exchange.DdRequestInterfaceItem"/>
+		<property name="resource" ref="resS600001DdRequestItemList"/>
+	</bean>
+	<bean id="w6000CollectionItem" class="com.sunline.ark.batch.VariablePartitionFileItemWriter" scope="step">
+		<description>催收接口文件</description>
+		<property name="fileDetailClass" value="com.sunline.ppy.dictionary.exchange.CollectionItem"/>
+		<property name="resource" ref="resS600002CollectionItem"/>
+	</bean>
+	<bean id="w6000Stmt" class="com.sunline.ark.batch.VariablePartitionFileItemWriter" scope="step">
+		<description>账单统计信息文件</description>
+		<property name="fileDetailClass" value="com.sunline.ppy.dictionary.exchange.StmtInterfaceItem"/>
+		<property name="resource" ref="resS600003Stmt"/>
+	</bean>
+	<bean id="w6000GlTxnItemList" class="com.sunline.ark.batch.VariablePartitionFileItemWriter" scope="step">
+		<description>总账交易流水文件 </description>
+		<property name="fileDetailClass" value="com.sunline.ppy.dictionary.exchange.GlTxnItem"/>
+		<property name="resource" ref="resS600004Gl"/>
+	</bean>
+	
+	<!-- 异常账户报表 -->
+	<!-- <bean id="w6000ExceptionAccount" class="com.sunline.acm.service.sdk.BatchFileWriter" scope="step">
+		<property name="fileDetailClass" value="com.sunline.ppy.dictionary.report.ccs.ExceptionAccountRptItem"/>
+		<property name="filename" value="S600005ExceptionAccount"/>
+	</bean>
+	当日交易流水报表
+	<bean id="w6000TxnJournal" class="com.sunline.acm.service.sdk.BatchFileWriter" scope="step">
+		<property name="fileDetailClass" value="com.sunline.ppy.dictionary.report.ccs.TxnJournalRptItem"/>
+		<property name="filename" value="S600006TxnJournal"/>
+	</bean>
+	当日挂账交易流水报表
+	<bean id="w6000RejectTxnJournal" class="com.sunline.acm.service.sdk.BatchFileWriter" scope="step">
+		<property name="fileDetailClass" value="com.sunline.ppy.dictionary.report.ccs.RejectTxnJournalRptItem"/>
+		<property name="filename" value="S600007RejectTxnJournal"/>
+	</bean>
+	授权成功匹配报表
+	<bean id="w6000MatchAuthJournal" class="com.sunline.acm.service.sdk.BatchFileWriter" scope="step">
+		<property name="fileDetailClass" value="com.sunline.ppy.dictionary.report.ccs.MatchAuthJournalRptItem"/>
+		<property name="filename" value="S600008MatchAuthJournal"/>
+	</bean> -->
+	
+	<!-- file -->
+	<bean id="w6000ExceptionAccount" class="com.sunline.ark.batch.VariablePartitionFileItemWriter" scope="step">
+		<description>异常账户报表 </description>
+		<property name="fileDetailClass" value="com.sunline.ppy.dictionary.report.ccs.ExceptionAccountRptItem"/>
+		<property name="resource" ref="resS600005ExceptionAccount"/>
+	</bean>
+	<bean id="w6000TxnJournal" class="com.sunline.ark.batch.VariablePartitionFileItemWriter" scope="step">
+		<description>当日交易流水报表</description>
+		<property name="fileDetailClass" value="com.sunline.ppy.dictionary.report.ccs.TxnJournalRptItem"/>
+		<property name="resource" ref="resS600006TxnJournal"/>
+	</bean>
+	<bean id="w6000RejectTxnJournal" class="com.sunline.ark.batch.VariablePartitionFileItemWriter" scope="step">
+		<description>当日挂账交易流水报表</description>
+		<property name="fileDetailClass" value="com.sunline.ppy.dictionary.report.ccs.RejectTxnJournalRptItem"/>
+		<property name="resource" ref="resS600007RejectTxnJournal"/>
+	</bean>
+	<bean id="w6000MatchAuthJournal" class="com.sunline.ark.batch.VariablePartitionFileItemWriter" scope="step">
+		<description>授权成功匹配报表</description>
+		<property name="fileDetailClass" value="com.sunline.ppy.dictionary.report.ccs.MatchAuthJournalRptItem"/>
+		<property name="resource" ref="resS600008MatchAuthJournal"/>
+	</bean>
+
+	<!-- 授权未匹配报表 -->
+	<!-- <bean id="w6000UnmatchAuthJournal" class="com.sunline.acm.service.sdk.BatchFileWriter" scope="step">
+		<property name="fileDetailClass" value="com.sunline.ppy.dictionary.report.ccs.UnmatchAuthJournalRptItem"/>
+		<property name="filename" value="S600009UnmatchAuthJournal"/>
+	</bean>
+	过期授权报表
+	<bean id="w6000ExpiredAuthJournal" class="com.sunline.acm.service.sdk.BatchFileWriter" scope="step">
+		<property name="fileDetailClass" value="com.sunline.ppy.dictionary.report.ccs.ExpiredAuthJournalRptItem"/>
+		<property name="filename" value="S600010ExpiredAuthJournal"/>
+	</bean>
+	超限账户报表
+	<bean id="w6000OverLimitAccount" class="com.sunline.acm.service.sdk.BatchFileWriter" scope="step">
+		<property name="fileDetailClass" value="com.sunline.ppy.dictionary.report.ccs.OverLimitAccountRptItem"/>
+		<property name="filename" value="S600011OverLimitAccount"/>
+	</bean>
+	内部生成积分交易报表
+	<bean id="w6000TxnPoint" class="com.sunline.acm.service.sdk.BatchFileWriter" scope="step">
+		<property name="fileDetailClass" value="com.sunline.ppy.dictionary.report.ccs.TxnPointsRptItem"/>
+		<property name="filename" value="S600012TxnPoint"/>
+	</bean> -->
+	
+	<!-- file -->
+	<bean id="w6000UnmatchAuthJournal" class="com.sunline.ark.batch.VariablePartitionFileItemWriter" scope="step">
+		<description>授权未匹配报表</description>
+		<property name="fileDetailClass" value="com.sunline.ppy.dictionary.report.ccs.UnmatchAuthJournalRptItem"/>
+		<property name="resource" ref="resS600009UnmatchAuthJournal"/>
+	</bean>
+	<bean id="w6000ExpiredAuthJournal" class="com.sunline.ark.batch.VariablePartitionFileItemWriter" scope="step">
+		<description>过期授权报表 </description>
+		<property name="fileDetailClass" value="com.sunline.ppy.dictionary.report.ccs.ExpiredAuthJournalRptItem"/>
+		<property name="resource" ref="resS600010ExpiredAuthJournal"/>
+	</bean>
+	<bean id="w6000OverLimitAccount" class="com.sunline.ark.batch.VariablePartitionFileItemWriter" scope="step">
+		<description>超限账户报表</description>
+		<property name="fileDetailClass" value="com.sunline.ppy.dictionary.report.ccs.OverLimitAccountRptItem"/>
+		<property name="resource" ref="resS600011OverLimitAccount"/>
+	</bean>
+	<bean id="w6000TxnPoint" class="com.sunline.ark.batch.VariablePartitionFileItemWriter" scope="step">
+		<description>内部生成积分交易报表</description>
+		<property name="fileDetailClass" value="com.sunline.ppy.dictionary.report.ccs.TxnPointsRptItem"/>
+		<property name="resource" ref="resS600012TxnPoint"/>
+	</bean>
+	
+	<!-- 分期XFR报表 -->
+	<!-- <bean id="w6000LoanXfr" class="com.sunline.acm.service.sdk.BatchFileWriter" scope="step">
+		<property name="fileDetailClass" value="com.sunline.ppy.dictionary.report.ccs.LoanXfrRptItem"/>
+		<property name="filename" value="S600013LoanXfr"/>
+	</bean>
+	分户账汇总信息文件
+	<bean id="w6000PlanBnpSum" class="com.sunline.acm.service.sdk.BatchFileWriter" scope="step">
+		<property name="fileDetailClass" value="com.sunline.ppy.dictionary.exchange.PlanBnpSumItem"/>
+		<property name="filename" value="S600014BnpSum"/>
+	</bean>
+	利息累积报表文件
+	<bean id="w6000IntAccrualItems" class="com.sunline.acm.service.sdk.BatchFileWriter" scope="step">
+		<property name="fileDetailClass" value="com.sunline.ppy.dictionary.report.ccs.InterestAccrualItem"/>
+		<property name="filename" value="S600015IntAccrualItemList"/>
+	</bean>
+	消费转分期报表文件
+	<bean id="w6000LoanSuccRptItems" class="com.sunline.acm.service.sdk.BatchFileWriter" scope="step">
+		<property name="fileDetailClass" value="com.sunline.ppy.dictionary.report.ccs.LoanSuccessRptItem"/>
+		<property name="filename" value="S1500LoanSuccessRpt"/>
+	</bean> -->
+	<!-- file -->
+	<bean id="w6000LoanXfr" class="com.sunline.ark.batch.VariablePartitionFileItemWriter" scope="step">
+		<description>分期XFR报表</description>
+		<property name="fileDetailClass" value="com.sunline.ppy.dictionary.report.ccs.LoanXfrRptItem"/>
+		<property name="resource" ref="resS600013LoanXfr"/>
+	</bean>
+	<bean id="w6000PlanBnpSum" class="com.sunline.ark.batch.VariablePartitionFileItemWriter" scope="step">
+		<description>分户账汇总信息文件 </description>
+		<property name="fileDetailClass" value="com.sunline.ppy.dictionary.exchange.PlanBnpSumItem"/>
+		<property name="resource" ref="resS600014PlanBnpSum"/>
+	</bean>
+	<bean id="w6000IntAccrualItems" class="com.sunline.ark.batch.VariablePartitionFileItemWriter" scope="step">
+		<description>利息累积报表文件 </description>
+		<property name="fileDetailClass" value="com.sunline.ppy.dictionary.report.ccs.InterestAccrualItem"/>
+		<property name="resource" ref="resS600015IntAccrualItemList"/>
+	</bean>
+	<bean id="w6000LoanSuccRptItems" class="com.sunline.ark.batch.VariablePartitionFileItemWriter" scope="step">
+		<description>消费转分期报表文件</description>
+		<property name="fileDetailClass" value="com.sunline.ppy.dictionary.report.ccs.LoanSuccessRptItem"/>
+		<property name="resource" ref="resS1501LoanSuccessRpt"/>
+	</bean>
+	<bean id="w6000OverContributionRptItems" class="com.sunline.ark.batch.VariablePartitionFileItemWriter" scope="step">
+		<description>溢缴款变动报表文件</description>
+		<property name="fileDetailClass" value="com.sunline.ppy.dictionary.report.ccs.OverContributionRptItem"/>
+		<property name="resource" ref="resS600016OverContributionRpt"/>
+		<property name="lineSeparator" value="\|" />
+	</bean>
+	
+	<bean id="w6001" class="com.sunline.ark.batch.PropertyDelegateWriter" scope="step">
+	    <property name="writers">
+	    	<map>
+	    		<entry key="ddRequestItemList" value-ref="w6000DdRequestItemList"/>
+	    		<entry key="collectionItems" value-ref="w6000CollectionItem"/>
+	    		<entry key="stmt" value-ref="w6000Stmt"/>
+	    		<entry key="glTxnItemList" value-ref="w6000GlTxnItemList"/>
+	    		<entry key="exceptionAccounts" value-ref="w6000ExceptionAccount"/>
+	    		<entry key="txnJournals" value-ref="w6000TxnJournal"/>
+	    		<entry key="rejectTxnJournals" value-ref="w6000RejectTxnJournal"/>
+	    		<entry key="matchAuthJournals" value-ref="w6000MatchAuthJournal"/>
+	    		<entry key="unmatchAuthJournals" value-ref="w6000UnmatchAuthJournal"/>
+	    		<entry key="expiredAuthJournals" value-ref="w6000ExpiredAuthJournal"/>
+	    		<entry key="overLimitAccounts" value-ref="w6000OverLimitAccount"/>
+	    		<entry key="txnPointss" value-ref="w6000TxnPoint"/>
+	    		<entry key="loanXfrs" value-ref="w6000LoanXfr"/>
+	    		<entry key="planBnpSums" value-ref="w6000PlanBnpSum"/>
+	    		<entry key="intAccrualItems" value-ref="w6000IntAccrualItems"/>
+	    		<entry key="loanSuccessRptItems" value-ref="w6000LoanSuccRptItems"/>
+	    		<entry key="overflowContributions" value-ref="w6000OverContributionRptItems"/>
+	    	</map>
+	    </property>
+	</bean>
+	
+	<bean id="t6001FileMerger" class="com.sunline.ark.batch.FileMergerTasklet">
+		<property name="taskExecutor" ref="asyncTaskExecutor"/>
+		<property name="pollInterval" value="#{env['pollInterval']?:2000}" />
+		<property name="resources" >
+			<list>
+				<ref bean="resS600001DdRequestItemList" />
+				<ref bean="resS600002CollectionItem" />
+				<ref bean="resS600003Stmt" />
+				<ref bean="resS600004Gl" />
+				<ref bean="resS600005ExceptionAccount" />
+				<ref bean="resS600006TxnJournal" />
+				<ref bean="resS600007RejectTxnJournal" />
+				<ref bean="resS600008MatchAuthJournal" />
+				<ref bean="resS600009UnmatchAuthJournal" />
+				<ref bean="resS600010ExpiredAuthJournal" />
+				<ref bean="resS600011OverLimitAccount" />
+				<ref bean="resS600012TxnPoint" />
+				<ref bean="resS600013LoanXfr" />
+				<ref bean="resS600014PlanBnpSum" />
+				<ref bean="resS600015IntAccrualItemList" />
+				<ref bean="resS1501LoanSuccessRpt" />
+				<ref bean="resS600016OverContributionRpt"/>
+			</list>
+		</property>
+	</bean>
+	
+	<!-- <bean id="e6001" class="com.sunline.fps.service.sdk.batch.DbFileExporter" scope="step">
+	    <property name="instanceName" value="#{env.instanceName}" />
+	    <property name="systemType" value="CCS" />
+		<property name="filenames">
+			<list>
+				<value>S600001DdRequestItemList</value>
+				<value>S600002CollectionItem</value>
+				<value>S600003Stmt</value>
+				<value>S600004Gl</value>
+				<value>S600005ExceptionAccount</value>
+				<value>S600006TxnJournal</value>
+				<value>S600007RejectTxnJournal</value>
+				<value>S600008MatchAuthJournal</value>
+				<value>S600009UnmatchAuthJournal</value>
+				<value>S600010ExpiredAuthJournal</value>
+				<value>S600011OverLimitAccount</value>
+				<value>S600012TxnPoint</value>
+				<value>S600013LoanXfr</value>
+				<value>S600014BnpSum</value>
+				<value>S600015IntAccrualItemList</value>
+				合并出文件
+				<value>S1500LoanSuccessRpt</value>
+			</list>
+		</property>
+	</bean> -->
+	
+</beans>

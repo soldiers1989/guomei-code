@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:rabbit="http://www.springframework.org/schema/rabbit"
+	xsi:schemaLocation="http://www.springframework.org/schema/rabbit http://www.springframework.org/schema/rabbit/spring-rabbit-1.1.xsd
+		http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.1.xsd
+		http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-3.1.xsd">
+
+	<!-- 导入消息队列通用配置 -->
+	<import resource="classpath:/acm-sdk-mq-context.xml"/>
+
+	<!-- 导入BMP服务配置 -->
+	<import resource="classpath:/pcm-sdk-mq-context.xml"/>
+	
+	<!-- 队列列表，没有就自动创建 -->
+	<rabbit:queue queue-arguments="amqpQueueArguments" id="cardnbrQueue" name="#{env.instanceName}.ccs.rpc.cardnbr"/>
+	
+	<!-- 业务组件导出及容器 -->
+	<bean id="cardnbrService" class="com.sunline.acm.service.sdk.ServiceExporter">
+		<property name="service" ref="cardNbrServiceImpl"/>
+		<property name="serviceInterface" value="com.sunline.ppy.api.CcCardNbrService"/>
+	</bean>
+	
+	<rabbit:listener-container requeue-rejected="false" concurrency="#{env['mqServiceConcurrency']?:1}">
+		<rabbit:listener queues="cardnbrQueue" ref="cardnbrService"/>
+	</rabbit:listener-container>
+	
+</beans>

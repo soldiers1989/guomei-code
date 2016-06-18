@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+
+	<bean id="r5001" class="com.sunline.ccs.batch.cc5000.R5001AcctClose" scope="step"/>
+
+	<bean id="p5001" class="com.sunline.ccs.batch.cc5000.P5001AcctClose" scope="step"/>
+	
+	<!-- <bean id="w5001CancelRpt" class="com.sunline.acm.service.sdk.BatchFileWriter" scope="step">
+		<description>销卡销户报表文件</description>
+		<property name="fileDetailClass" value="com.sunline.ppy.dictionary.report.ccs.CancelRptItem"/>
+		<property name="filename" value="S400001CancelRpt"/>
+	</bean>
+
+	<bean id="w5001CloseRpt" class="com.sunline.acm.service.sdk.BatchFileWriter" scope="step">
+		<description>关闭账户报表文件</description>
+		<property name="fileDetailClass" value="com.sunline.ppy.dictionary.report.ccs.AcctCloseRptItem"/>
+		<property name="filename" value="S400002CloseRpt"/>
+	</bean> -->
+	
+	<bean id="w5001CancelRpt" class="com.sunline.ark.batch.YakPartitionFileItemWriter" scope="step">
+		<property name="resource" ref="resS400001CancelRpt"/>
+		<property name="fileDetailClass" value="com.sunline.ppy.dictionary.report.ccs.CancelRptItem"/>
+	</bean>
+	
+	<bean id="w5001CloseRpt" class="com.sunline.ark.batch.YakPartitionFileItemWriter" scope="step">
+		<property name="resource" ref="resS400002CloseRpt"/>
+		<property name="fileDetailClass" value="com.sunline.ppy.dictionary.report.ccs.AcctCloseRptItem"/>
+	</bean>
+	
+	<bean id="w5001" class="com.sunline.ark.batch.PropertyDelegateWriter" scope="step">
+		<property name="writers">
+			<map>
+				<entry key="cancelRptItem" value-ref="w5001CancelRpt"/>
+				<entry key="acctCloseRptItem" value-ref="w5001CloseRpt"/>
+			</map>
+		</property>
+	</bean>
+		
+	<bean id="t5001FileMerger" class="com.sunline.ark.batch.FileMergerTasklet">
+		<property name="taskExecutor" ref="asyncTaskExecutor"/>
+		<property name="pollInterval" value="#{env['pollInterval']?:2000}" />
+		<property name="resources" >
+			<list>
+				<ref bean="resS400001CancelRpt" />
+				<ref bean="resS400002CloseRpt" />
+			</list>
+		</property>
+	</bean>
+
+	<!-- <bean id="e5001" class="com.sunline.fps.service.sdk.batch.DbFileExporter" scope="step">
+	    <property name="instanceName" value="#{env.instanceName}" />
+	    <property name="systemType" value="CCS" />
+		<property name="filenames">
+			<list>
+				<value>S400001CancelRpt</value>
+				<value>S400002CloseRpt</value>
+			</list>
+		</property>
+	</bean>
+	 -->
+</beans>

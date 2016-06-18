@@ -1,0 +1,221 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+	<parent>
+		<groupId>com.sunline.ccs</groupId>
+		<artifactId>ccs-parent</artifactId>
+		<version>1.1.0-SNAPSHOT</version>
+		<relativePath>..</relativePath>
+	</parent>
+	<artifactId>ccs-web</artifactId>
+	<packaging>war</packaging>
+	<name>ccs - web - 贷记卡管理界面</name>
+	<dependencies>
+		<dependency>
+			<groupId>com.sunline.ccs</groupId>
+			<artifactId>ccs-infrastructure</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>com.sunline.ccs</groupId>
+			<artifactId>ccs-facility</artifactId>
+		</dependency>		
+		<dependency>
+			<groupId>com.sunline.ccs</groupId>
+			<artifactId>ccs-param-def</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>com.sunline.ccs</groupId>
+			<artifactId>ccs-service-api</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>com.sunline.ccs</groupId>
+			<artifactId>ccs-ui</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>com.sunline.pcm</groupId>
+			<artifactId>pcm-param-def</artifactId>
+		</dependency>
+		<dependency> 
+			<groupId>com.sunline.kylin.web</groupId>
+			<artifactId>kylin-web-org-ui</artifactId>
+		</dependency>
+		<!-- <dependency>
+			<groupId>com.sunline.pcm</groupId>
+			<artifactId>pcm-ui</artifactId>
+		</dependency> -->
+		<dependency>
+			<groupId>com.sunline.ark</groupId>
+			<artifactId>ark-mq</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>com.sunline.ark</groupId>
+			<artifactId>ark-support</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>com.sunline.ppy</groupId>
+			<artifactId>ppy-dictionary</artifactId>
+		</dependency>
+<!-- 		<dependency>
+			<groupId>com.sunline.oes</groupId>
+			<artifactId>oes-service-api</artifactId>
+		</dependency> -->
+<!-- 		<dependency>
+			<groupId>com.sunline.smsd</groupId>
+			<artifactId>smsd-service-sdk</artifactId>
+		</dependency> -->
+		<!-- GMP依赖版本在cps-parent里指定 -->
+		<dependency>
+			<groupId>com.sunline.acm</groupId>
+			<artifactId>acm-service-sdk</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>com.sunline.pcm</groupId>
+			<artifactId>pcm-service-sdk</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>com.sunline.pcm</groupId>
+			<artifactId>pcm-infrastructure</artifactId>
+		</dependency>
+
+		<!-- Spring 依赖 -->
+		<dependency>
+			<groupId>org.springframework.security</groupId>
+			<artifactId>spring-security-config</artifactId>
+			<scope>runtime</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.security</groupId>
+			<artifactId>spring-security-cas</artifactId>
+			<scope>runtime</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework</groupId>
+			<artifactId>spring-webmvc</artifactId>
+			<scope>runtime</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework</groupId>
+			<artifactId>spring-web</artifactId>
+		</dependency>
+
+		<!-- GWT 依赖，由于是provided，不能依靠依赖传递 -->
+		<!-- <dependency>
+			<groupId>com.google.gwt</groupId>
+			<artifactId>gwt-user</artifactId>
+			<scope>provided</scope>
+		</dependency>
+		<dependency>
+			<groupId>com.google.gwt.inject</groupId>
+			<artifactId>gin</artifactId>
+		</dependency> -->
+		<!-- <dependency>
+			<groupId>com.smartgwt</groupId>
+			<artifactId>smartgwt</artifactId>
+		</dependency> -->
+
+		<!-- AspectJ 依赖项 -->
+		<dependency>
+			<groupId>org.aspectj</groupId>
+			<artifactId>aspectjrt</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework</groupId>
+			<artifactId>spring-aspects</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.security</groupId>
+			<artifactId>spring-security-aspects</artifactId>
+		</dependency>
+
+		<!-- 日志, 只有slf4j的scope为compile，需要在程序里直接引用 -->
+		<dependency>
+			<groupId>org.slf4j</groupId>
+			<artifactId>slf4j-api</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.slf4j</groupId>
+			<artifactId>jcl-over-slf4j</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.slf4j</groupId>
+			<artifactId>slf4j-log4j12</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>log4j</groupId>
+			<artifactId>log4j</artifactId>
+		</dependency>
+
+		<!-- commons 库 -->
+
+		<!-- dbcp连接池和db2驱动 -->
+		<dependency>
+			<groupId>commons-dbcp</groupId>
+			<artifactId>commons-dbcp</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>com.ibm.db2</groupId>
+			<artifactId>db2jcc</artifactId>
+			<version>3.59.81</version>
+			<scope>runtime</scope>
+		</dependency>
+		<dependency>
+		  	<groupId>oracle</groupId>
+			<artifactId>ojdbc6</artifactId>
+		 	<scope>runtime</scope>
+		</dependency>
+		<dependency>
+			<groupId>mysql</groupId>
+			<artifactId>mysql-connector-java</artifactId>
+			<scope>runtime</scope>
+		</dependency>	
+ 		<!-- 屏蔽掉一些传递依赖项 -->
+ 		<dependency>
+			<groupId>javax.servlet</groupId>
+			<artifactId>servlet-api</artifactId>
+			<scope>provided</scope>
+		</dependency>
+ 		<!-- 以下为GWT支持javax.validation的依赖项，本项目没用到，但不加会有错误信息。 -->
+		<!-- 目前没有用到JSR303的功能，但由于加入了依赖项，必须指定一个provider，所以加了HibernateValidator -->
+		<dependency>	
+			<groupId>javax.validation</groupId>
+			<artifactId>validation-api</artifactId>
+			<version>1.0.0.GA</version>
+		</dependency>
+	</dependencies>
+	<build>
+		<plugins>
+			<plugin>
+				<groupId>org.codehaus.mojo</groupId>
+				<artifactId>aspectj-maven-plugin</artifactId>
+			</plugin>
+			<plugin>
+				<groupId>org.codehaus.mojo</groupId>
+				<artifactId>gwt-maven-plugin</artifactId>
+				<executions>
+					<execution>
+						<configuration>
+							<module>com.sunline.ccs.web.Module</module>
+							<extraJvmArgs>-Xmx2048M</extraJvmArgs>
+							<enableAssertions>true</enableAssertions>
+							<draftCompile>false</draftCompile>
+						</configuration>
+						<goals>
+							<goal>compile</goal>
+						</goals>
+					</execution>
+				</executions>
+				<dependencies>
+					<dependency>
+						<groupId>com.google.gwt</groupId>
+						<artifactId>gwt-dev</artifactId>
+						<version>${gwt.version}</version>
+					</dependency>
+				</dependencies>
+			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-war-plugin</artifactId>
+			</plugin>
+		</plugins>
+	</build>
+</project>

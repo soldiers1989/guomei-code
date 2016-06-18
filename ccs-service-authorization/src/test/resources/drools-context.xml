@@ -1,0 +1,193 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:drools="http://drools.org/schema/drools-spring"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.1.xsd
+                           http://drools.org/schema/drools-spring http://drools.org/schema/drools-spring.xsd">
+
+	<!-- 交易预处理 -->
+	<drools:kbase id="cupPreProcessRule">
+	 	<drools:resources>
+			<drools:resource source="classpath:drools/cup-preprocess.xls" type="DTABLE">
+				<drools:decisiontable-conf input-type="XLS" worksheet-name="交易分类"/>
+			</drools:resource>
+			<drools:resource source="classpath:drools/cup-preprocess.xls" type="DTABLE">
+				<drools:decisiontable-conf input-type="XLS" worksheet-name="终端分类"/>
+			</drools:resource>
+			<drools:resource source="classpath:drools/cup-preprocess.xls" type="DTABLE">
+				<drools:decisiontable-conf input-type="XLS" worksheet-name="交易发起方式"/>
+			</drools:resource>
+			<drools:resource source="classpath:drools/cup-preprocess.xls" type="DTABLE">
+				<drools:decisiontable-conf input-type="XLS" worksheet-name="自助类型"/>
+			</drools:resource>
+			<drools:resource source="classpath:drools/cup-preprocess.xls" type="DTABLE">
+				<drools:decisiontable-conf input-type="XLS" worksheet-name="是否电子类交易"/>
+			</drools:resource>
+			<drools:resource source="classpath:drools/cup-preprocess.xls" type="DTABLE">
+				<drools:decisiontable-conf input-type="XLS" worksheet-name="是否远程交易"/>
+			</drools:resource>
+			<drools:resource source="classpath:drools/cup-preprocess.xls" type="DTABLE">
+				<drools:decisiontable-conf input-type="XLS" worksheet-name="是否境外免验"/>
+			</drools:resource>
+			<drools:resource source="classpath:drools/cup-preprocess.xls" type="DTABLE">
+				<drools:decisiontable-conf input-type="XLS" worksheet-name="是否银联境外交易"/>
+			</drools:resource>
+			<drools:resource source="classpath:drools/cup-preprocess.xls" type="DTABLE">
+				<drools:decisiontable-conf input-type="XLS" worksheet-name="网上交易"/>
+			</drools:resource>
+			<drools:resource source="classpath:drools/cup-preprocess.xls" type="DTABLE">
+				<drools:decisiontable-conf input-type="XLS" worksheet-name="48域附加交易类型"/>
+			</drools:resource>
+			<drools:resource source="classpath:drools/cup-preprocess.xls" type="DTABLE">
+				<drools:decisiontable-conf input-type="XLS" worksheet-name="自主或辅助交易"/>
+			</drools:resource>
+			<!-- common preprocess -->
+			<drools:resource source="classpath:drools/common-preprocess.xls" type="DTABLE">
+				<drools:decisiontable-conf input-type="XLS" worksheet-name="交易介质"/>
+			</drools:resource>
+			<drools:resource source="classpath:drools/common-preprocess.xls" type="DTABLE">
+				<drools:decisiontable-conf input-type="XLS" worksheet-name="交易密码输入能力"/>
+			</drools:resource>
+			<drools:resource source="classpath:drools/common-preprocess.xls" type="DTABLE">
+				<drools:decisiontable-conf input-type="XLS" worksheet-name="交易密码验证标识"/>
+			</drools:resource>
+		</drools:resources>
+		<drools:configuration>
+			<drools:mbeans enabled="true" />
+			<drools:event-processing-mode mode="STREAM" />
+		</drools:configuration> 
+	</drools:kbase>
+	
+	<drools:kbase id="bankPreProcessRule">
+	 	<drools:resources>
+			<drools:resource source="classpath:drools/bank-preprocess.xls" type="DTABLE">
+				<drools:decisiontable-conf input-type="XLS" worksheet-name="交易分类"/>
+			</drools:resource>
+			<drools:resource source="classpath:drools/bank-preprocess.xls" type="DTABLE">
+				<drools:decisiontable-conf input-type="XLS" worksheet-name="终端分类"/>
+			</drools:resource>
+			<drools:resource source="classpath:drools/bank-preprocess.xls" type="DTABLE">
+				<drools:decisiontable-conf input-type="XLS" worksheet-name="网上交易"/>
+			</drools:resource>
+			<drools:resource source="classpath:drools/bank-preprocess.xls" type="DTABLE">
+				<drools:decisiontable-conf input-type="XLS" worksheet-name="销户结清"/>
+			</drools:resource>
+			
+			<!-- common preprocess -->
+			<drools:resource source="classpath:drools/common-preprocess.xls" type="DTABLE">
+				<drools:decisiontable-conf input-type="XLS" worksheet-name="交易介质"/>
+			</drools:resource>
+			<drools:resource source="classpath:drools/common-preprocess.xls" type="DTABLE">
+				<drools:decisiontable-conf input-type="XLS" worksheet-name="交易密码输入能力"/>
+			</drools:resource>
+			<drools:resource source="classpath:drools/common-preprocess.xls" type="DTABLE">
+				<drools:decisiontable-conf input-type="XLS" worksheet-name="交易密码验证标识"/>
+			</drools:resource>
+		</drools:resources>
+		<drools:configuration>
+			<drools:mbeans enabled="true" />
+			<drools:event-processing-mode mode="STREAM" />
+		</drools:configuration> 
+	</drools:kbase>
+
+	 <drools:kbase id="crossVerficationRule">
+		<drools:resources>
+			<drools:resource source="classpath:drools/cup-cross-verifier.drl" type="DRL"/>
+		</drools:resources>
+
+		<drools:configuration>
+			<drools:mbeans enabled="true" />
+			<drools:event-processing-mode mode="STREAM" />
+		</drools:configuration>
+	</drools:kbase>
+
+<!-- 	<drools:kbase id="statusVerficationRule"> -->
+<!-- 		<drools:resources> -->
+<!-- 			<drools:resource source="classpath:drools/cup-status-verifier.drl" type="DRL"/> -->
+<!-- 		</drools:resources> -->
+
+<!-- 		<drools:configuration> -->
+<!-- 			<drools:mbeans enabled="true" /> -->
+<!-- 			<drools:event-processing-mode mode="STREAM" /> -->
+<!-- 		</drools:configuration> -->
+<!-- 	</drools:kbase> -->
+
+<!-- 	<drools:kbase id="countryVerficationRule"> -->
+<!-- 		<drools:resources> -->
+<!-- 			<drools:resource source="classpath:drools/cup-country-currency-mcc-verifier.drl" type="DRL"/> -->
+<!-- 		</drools:resources> -->
+
+<!-- 		<drools:configuration> -->
+<!-- 			<drools:mbeans enabled="true" /> -->
+<!-- 			<drools:event-processing-mode mode="STREAM" /> -->
+<!-- 		</drools:configuration> -->
+<!-- 	</drools:kbase> -->
+
+	<!-- <drools:kbase id="terminalVerficationRule">
+		<drools:resources>
+			<drools:resource source="classpath:drools/auth-terminal-verifier.drl" type="DRL"/>
+		</drools:resources>
+
+		<drools:configuration>
+			<drools:mbeans enabled="true" />
+			<drools:event-processing-mode mode="STREAM" />
+		</drools:configuration>
+	</drools:kbase> -->
+
+	<drools:kbase id="generalVerficationRule">
+		<drools:resources>
+			<drools:resource source="classpath:drools/auth-terminal-verifier.drl" type="DRL"/>
+			<drools:resource source="classpath:drools/auth-general-verifier.drl" type="DRL"/>
+		</drools:resources>
+
+		<drools:configuration>
+			<drools:mbeans enabled="true" />
+			<drools:event-processing-mode mode="STREAM" />
+		</drools:configuration>
+	</drools:kbase>
+
+<!-- 	<drools:kbase id="secureVerficationRule"> -->
+<!-- 		<drools:resources> -->
+<!-- 			<drools:resource source="classpath:drools/cup-secure-verifier.drl" type="DRL"/> -->
+<!-- 		</drools:resources> -->
+
+<!-- 		<drools:configuration> -->
+<!-- 			<drools:mbeans enabled="true" /> -->
+<!-- 			<drools:event-processing-mode mode="STREAM" /> -->
+<!-- 		</drools:configuration> -->
+<!-- 	</drools:kbase> -->
+
+<!-- 	<drools:kbase id="velocityVerficationRule"> -->
+<!-- 		<drools:resources> -->
+<!-- 			<drools:resource source="classpath:drools/cup-velocity-verifier.drl" type="DRL"/> -->
+<!-- 		</drools:resources> -->
+
+<!-- 		<drools:configuration> -->
+<!-- 			<drools:mbeans enabled="true" /> -->
+<!-- 			<drools:event-processing-mode mode="STREAM" /> -->
+<!-- 		</drools:configuration> -->
+<!-- 	</drools:kbase> -->
+
+<!-- 	<drools:kbase id="bankMerchantVerficationRule"> -->
+<!-- 		<drools:resources> -->
+<!-- 			<drools:resource source="classpath:drools/bank-merchant-verifier.drl" type="DRL"/> -->
+<!-- 		</drools:resources> -->
+
+<!-- 		<drools:configuration> -->
+<!-- 			<drools:mbeans enabled="true" /> -->
+<!-- 			<drools:event-processing-mode mode="STREAM" /> -->
+<!-- 		</drools:configuration> -->
+<!-- 	</drools:kbase> -->
+
+	<drools:kbase id="reasonRule">
+		<drools:resources>
+			<drools:resource source="classpath:drools/auth-microcredit-verifier.drl" type="DRL"/>
+			<drools:resource source="classpath:drools/cup-secure-verifier.drl" type="DRL"/>
+		</drools:resources>
+
+		<drools:configuration>
+			<drools:mbeans enabled="true" />
+			<drools:event-processing-mode mode="STREAM" />
+		</drools:configuration>
+	</drools:kbase>  
+	
+</beans>

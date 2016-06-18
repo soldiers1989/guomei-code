@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+
+	<bean id="r2201" class="com.sunline.ccs.batch.cc2200.R2201CardFee" scope="step"/>
+
+	<bean id="p2201" class="com.sunline.ccs.batch.cc2200.P2201CardFee" scope="step"/>
+	
+	<!-- <bean id="w2201" class="com.sunline.acm.service.sdk.BatchFileWriter" scope="step">
+		<description>年费收取报表文件</description>
+		<property name="fileDetailClass" value="com.sunline.ppy.dictionary.report.ccs.CardFeeRptItem"/>
+		<property name="filename" value="S0801CardFeeRpt"/>
+	</bean> -->
+	<bean id="w2201" class="com.sunline.ark.batch.YakPartitionFileItemWriter" scope="step">
+		<description>年费收取报表文件</description>
+		<property name="resource" ref="resS2201CardFeeRpt"/>
+		<property name="fileDetailClass" value="com.sunline.ppy.dictionary.report.ccs.CardFeeRptItem"/>
+	</bean>
+	
+	
+	<bean id="t2201FileMerger" class="com.sunline.ark.batch.FileMergerTasklet">
+		<property name="taskExecutor" ref="asyncTaskExecutor"/>
+		<property name="pollInterval" value="#{env['pollInterval']?:2000}" />
+		<property name="resources" >
+			<list>
+				<ref bean="resS2201CardFeeRpt" />
+			</list>
+		</property>
+	</bean>
+</beans>

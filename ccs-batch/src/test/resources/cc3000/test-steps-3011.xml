@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<beans default-lazy-init="false"
+	xmlns:p="http://www.springframework.org/schema/p"
+	xmlns="http://www.springframework.org/schema/beans"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:util="http://www.springframework.org/schema/util"
+	xmlns:jee="http://www.springframework.org/schema/jee"
+	xmlns:jms="http://www.springframework.org/schema/jms"
+	xmlns:batch="http://www.springframework.org/schema/batch"
+	xmlns:task="http://www.springframework.org/schema/task"
+	xsi:schemaLocation="http://www.springframework.org/schema/jee http://www.springframework.org/schema/jee/spring-jee-3.1.xsd
+		http://www.springframework.org/schema/jms http://www.springframework.org/schema/jms/spring-jms-3.1.xsd
+		http://www.springframework.org/schema/task http://www.springframework.org/schema/task/spring-task-3.2.xsd
+		http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.1.xsd
+		http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util-3.1.xsd
+		http://www.springframework.org/schema/batch http://www.springframework.org/schema/batch/spring-batch.xsd
+		http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-3.1.xsd">
+		
+      
+      <batch:job id="autoExemptTest">
+	     <!-- 自动豁免 -->
+		<batch:step id="cc3011AutoExempt">
+			<batch:partition partitioner="r3011">
+				<batch:handler grid-size="#{env['GridSize'] ?: 16}" task-executor="asyncTaskExecutor"/>
+				<batch:step>
+					<batch:tasklet>
+						<batch:chunk reader="r3011" processor="p3011" writer="w3011"  commit-interval="#{env['commitInterval'] ?: 100}" />
+					</batch:tasklet>
+				</batch:step>
+			</batch:partition>
+		</batch:step>
+      </batch:job>
+		
+		<!-- 自动豁免r/p/w -->
+	<bean id="r3011" class="com.sunline.ccs.batch.cc3000.R3011AutoExempt" scope="step"/>
+	<bean id="p3011" class="com.sunline.ccs.batch.cc3000.P3011AutoExempt" scope="step"/>
+	<bean id="w3011" class="com.sunline.ark.batch.NullItemWriter" scope="step"/>
+
+
+	
+</beans>

@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+
+	<bean id="r3001" class="com.sunline.ccs.batch.cc3000.R3001LoanHandler" scope="step"/>
+
+	<bean id="p3001" class="com.sunline.ccs.batch.cc3000.P3001LoanHandler" scope="step"/>
+	
+	<bean id="w3001" class="com.sunline.ark.batch.PropertyDelegateWriter" scope="step">
+		<property name="writers">
+			<map>
+				<entry key="loanSuccessRpt" value-ref="w3001LoanSuccessRpt"/>
+<!-- 				<entry key="rescheduleMsg" value-ref="w3001RescheduleMsg"/> -->
+			</map>
+		</property>
+	</bean>
+	
+	<!-- <bean id="w3001LoanSuccessRpt" class="com.sunline.acm.service.sdk.BatchFileWriter" scope="step">
+		<description>分期交易预处理成功文件</description>
+		<property name="fileDetailClass" value="com.sunline.ppy.dictionary.report.ccs.LoanSuccessRptItem"/>
+		<property name="filename" value="S1500LoanSuccessRpt"/>
+	</bean>
+	<bean id="w3001RescheduleMsg" class="com.sunline.acm.service.sdk.BatchFileWriter" scope="step">
+		<description>展期缩期批量短信文件</description>
+		<property name="fileDetailClass" value="com.sunline.smsd.service.sdk.LoanRescheduleMsgItem"/>
+		<property name="filename" value="S1500RescheduleMsg"/>
+	</bean> -->
+	
+	<bean id="w3001LoanSuccessRpt" class="com.sunline.ark.batch.YakPartitionFileItemWriter" scope="step">
+		<property name="resource" ref="resS1500LoanSuccessRpt"/>
+		<property name="fileDetailClass" value="com.sunline.ppy.dictionary.report.ccs.LoanSuccessRptItem"/>
+	</bean>
+<!-- 	<bean id="w3001RescheduleMsg" class="com.sunline.ark.batch.YakPartitionFileItemWriter" scope="step">
+		<property name="resource" ref="resS1500RescheduleMsg"/>
+		<property name="fileDetailClass" value="com.sunline.smsd.service.sdk.LoanRescheduleMsgItem"/>
+	</bean> -->
+	
+	
+	<bean id="t3001FileMerger" class="com.sunline.ark.batch.FileMergerTasklet">
+		<property name="taskExecutor" ref="asyncTaskExecutor"/>
+		<property name="pollInterval" value="#{env['pollInterval']?:2000}" />
+		<property name="resources" >
+			<list>
+				<ref bean="resS1500LoanSuccessRpt" />
+<!-- 				<ref bean="resS1500RescheduleMsg" /> -->
+			</list>
+		</property>
+	</bean>
+	<!-- <bean id="e3001" class="com.sunline.fps.service.sdk.batch.DbFileExporter" scope="step">
+	    <property name="instanceName" value="#{env.instanceName}" />
+	    <property name="systemType" value="CCS" />
+	    <property name="filenames">
+			<list>
+				<value>S1500LoanSuccessRpt</value>
+				<value>S1500RescheduleMsg</value>
+			</list>
+		</property>
+	</bean> -->
+	
+	<bean id="r3010" class="com.sunline.ccs.batch.cc3000.R3010AutoCancleLoan" scope="step"/>
+	<bean id="p3010" class="com.sunline.ccs.batch.cc3000.P3010AutoCancleLoan" scope="step"/>
+	<bean id="w3010" class="com.sunline.ark.batch.NullItemWriter" scope="step"/>
+	
+	<!-- 自动豁免r/p/w -->
+	<bean id="r3011" class="com.sunline.ccs.batch.cc3000.R3011AutoExempt" scope="step"/>
+	<bean id="p3011" class="com.sunline.ccs.batch.cc3000.P3011AutoExempt" scope="step"/>
+	<bean id="w3011" class="com.sunline.ark.batch.NullItemWriter" scope="step"/>
+	
+</beans>

@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+
+	<bean id="genRptJobStartFile" class="com.sunline.ccs.batch.end.RptJobStartTasklet" >
+		<property name="resource" ref="resSARptJobStartFile" />
+	</bean>
+	
+	<bean id="rptWait" class="com.sunline.acm.service.sdk.ResourceWaitingTask" scope="step">
+		<description>waitResourcesM,必须存在，waitResourcesO，非必须，如果不存在自动创建</description>
+	    <property name="waitResourcesM">
+			<list>
+				<ref bean="resSARptJobStartFile" />
+			</list>
+		</property>
+		<property name="waitResourcesO">
+			<list></list>
+		</property>
+	</bean>
+	
+	<bean id="rptBatchUtil" class="com.sunline.ccs.batch.rpt.common.RptBatchUtil" >
+		<property name="isAcmMock" value="true" />
+	</bean>
+	
+	<bean id="oa291" class="com.sunline.ccs.batch.rpt.cca290.OA291SendYGFile">
+		<property name="ftpOperations" ref="ygFtpClientTemplate"/> 
+	</bean>
+	<bean id="ygFtpClientTemplate" class="com.sunline.ark.batch.FTPClientTemplate">
+		<property name="host" value="#{env.ygFtpHost}" />
+		<property name="userName" value="#{env.ygFtpUserName}" />
+		<property name="password" value="#{env.ygFtpPassword}" />
+	</bean>
+	
+	<bean id="oa292" class="com.sunline.ccs.batch.rpt.cca290.OA292SendMsRpt">
+		<property name="ftpOperations" ref="msRptFtpClientTemplate"/>
+	</bean>
+	
+	<!-- 结算平台ftp -->
+	<bean id="settlePlatformFtpClient" class="com.sunline.ark.batch.FTPClientTemplate">
+		<property name="host" value="#{env.msFtphost}" />
+		<property name="userName" value="#{env.settlePlatformUser}" />
+		<property name="password" value="#{env.settlePlatformPassword}" />
+	</bean>
+	
+	<bean id="msRptFtpClientTemplate" class="com.sunline.ark.batch.FTPClientTemplate">
+		<property name="host" value="#{env.msFtphost}" />
+		<property name="userName" value="#{env.msFtpUserName}" />
+		<property name="password" value="#{env.msFtpPassword}" />
+	</bean>	
+
+	<bean id="beforeJob" class="com.sunline.ccs.batch.cca000.JobExecuteConfListener">
+	
+	</bean>
+	
+</beans>

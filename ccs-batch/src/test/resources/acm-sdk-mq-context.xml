@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<beans default-lazy-init="false"
+	xmlns="http://www.springframework.org/schema/beans" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:p="http://www.springframework.org/schema/p" xmlns:rabbit="http://www.springframework.org/schema/rabbit"
+	xmlns:task="http://www.springframework.org/schema/task"
+	xsi:schemaLocation="http://www.springframework.org/schema/task http://www.springframework.org/schema/task/spring-task-3.1.xsd
+		http://www.springframework.org/schema/rabbit http://www.springframework.org/schema/rabbit/spring-rabbit-1.1.xsd
+		http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.1.xsd">
+
+	<!-- 作为标准的ACM定义文件，这里定义了包括AMQP连接池、Template、MessageConverter和DestinationResolver在内的一组对象 -->
+	<!-- 各子系统的rpc-context.xml应该import该文件 -->
+
+	<!-- RabbitMQ连接池 -->
+	<task:executor id="amqpConnectionTaskExecutor" pool-size="#{env['mqConnRecvThreads']?:1}" />
+	<rabbit:connection-factory id="rabbitConnectionFactory"
+		channel-cache-size="#{env['mqChannelCacheSize']?:10}" executor="amqpConnectionTaskExecutor"
+		addresses="#{env['mqAddresses']}" virtual-host="#{env['mqVHost']?:'/dev'}"
+		username="#{env['mqUser']?:'guest'}" password="#{env['mqPassword']?:'guest'}" />
+
+	<!-- 标准的建立Queue的参数 -->
+	<rabbit:queue-arguments id="amqpQueueArguments">
+		<!-- 暂时没有 -->
+	</rabbit:queue-arguments>
+
+	<rabbit:queue queue-arguments="amqpQueueArguments" id="amqpTemplateReplyQueue" />	<!-- 固定响应队列 -->
+	<rabbit:template id="amqpTemplate" connection-factory="rabbitConnectionFactory"
+		reply-timeout="#{env['mqRPCTimeout']?:30000}" message-converter="acmMessageConverter"
+		reply-queue="amqpTemplateReplyQueue">
+		<rabbit:reply-listener concurrency="2" />
+	</rabbit:template>
+
+	<!-- 供自动创建队列 -->
+	<rabbit:admin connection-factory="rabbitConnectionFactory" />
+
+	<!-- <bean id="acmOrganizationService"
+		class="com.sunline.acm.service.sdk.ServiceProxyFactoryBean">
+		<property name="serviceInterface"
+			value="com.sunline.kylin.web.org.server.OrganizationService" />
+		<property name="global" value="true" />
+	</bean> -->
+
+	<!-- 全局管理服务 -->
+	<!-- <bean id="globalManagementService"
+		class="com.sunline.ark.mq.config.AmqpInvokerClientFactoryBean">
+		<property name="amqpTemplate" ref="amqpTemplate" />
+		<property name="serviceInterface"
+			value="com.sunline.acm.service.api.GlobalManagementService" />
+	</bean> -->
+	<bean id="acmMessageConverter" class="com.sunline.acm.service.sdk.ACMMessageConverter" />
+
+	<!-- 托管进程所需的组件服务 -->
+	<bean id="managedComponentService"
+		class="com.sunline.ark.mq.config.AmqpInvokerClientFactoryBean">
+		<property name="amqpTemplate" ref="amqpTemplate" />
+		<property name="serviceInterface"
+			value="com.sunline.acm.service.api.ManagedComponentService" />
+	</bean>
+
+	<!-- 心跳报文相关 -->
+	<!-- 这里不用task:annotation-driven是因为主程序里有可能使用，不能出现多次。 -->
+	<bean id="acmHeartbeatProcessor" class="com.sunline.acm.service.sdk.HeartbeatProcessor"
+		depends-on="amqpTemplate" />
+	<task:scheduled-tasks>
+		<task:scheduled ref="acmHeartbeatProcessor" method="beatHeart"
+			fixed-delay="#{env['processHeartbeatInterval']?:60000}" />
+	</task:scheduled-tasks>
+
+	<!-- 实例路由及相关缓存刷新配置 -->
+	<bean id="acmDestinationResolver" class="com.sunline.acm.service.sdk.ACMDestinationResolver">
+		<property name="globalManagementService" ref="globalManagementService" />
+	</bean>
+	<!-- 缓存定义:instanceRouteCache -->
+	<bean
+		class="org.springframework.cache.concurrent.ConcurrentMapCacheFactoryBean"
+		p:name="instanceRouteCache" />
+	<!-- 监听缓存刷新的全局队列 -->
+	<rabbit:queue queue-arguments="amqpQueueArguments" id="instanceRouteRefreshQueue" />
+	<rabbit:topic-exchange name="global.acm.ex.cache">
+		<rabbit:bindings>
+			<rabbit:binding queue="instanceRouteRefreshQueue"
+				pattern="acm.instance-route" />
+		</rabbit:bindings>
+	</rabbit:topic-exchange>
+	<!-- <rabbit:listener-container requeue-rejected="false"
+		concurrency="1" message-converter="acmMessageConverter">
+		<rabbit:listener queues="instanceRouteRefreshQueue"
+			ref="acmDestinationResolver" method="clearInstanceRoute" />
+	</rabbit:listener-container> -->
+
+	<!-- 系统状态缓存 -->
+	<bean
+		class="org.springframework.cache.concurrent.ConcurrentMapCacheFactoryBean"
+		p:name="systemStatusCache" />
+
+
+</beans>

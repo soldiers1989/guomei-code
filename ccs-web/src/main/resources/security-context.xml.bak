@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns="http://www.springframework.org/schema/beans" xmlns:security="http://www.springframework.org/schema/security"
+	xsi:schemaLocation="http://www.springframework.org/schema/security http://www.springframework.org/schema/security/spring-security-3.1.xsd
+		http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.1.xsd">
+
+	<!-- 需要定义几个property(example)： 1. casServerUrl (https://yak:8443/gmp-cas) 
+		浏览器访问的登录地址，一般是https的 2. casValidateUrl (http://yak:8080/gmp-cas) 服务器到服务器的访问，不需要http，只要直接地址 
+		3. casCcsUrl (http://ark/gmp-app) 自身地址 -->
+
+	<!-- 支持基于AspectJ的方法级安全 -->
+	<security:global-method-security
+		pre-post-annotations="enabled" mode="aspectj" />
+
+	<security:http pattern="/**/*.js" security="none" />
+	<security:http pattern="/**/*.png" security="none" />
+	<security:http pattern="/**/*.jpg" security="none" />
+	<security:http pattern="/**/*.ico" security="none" />
+	<security:http pattern="/App/rpc/sessionServer/timeout.do" security="none" />
+
+	<!-- 如果使用FormLogin，则create-session必须设置为always，因为在GWT应用中，AJAX请求默认不会建session，所以在GWT的Servlet的响应中也就没有JSESSONID，导致SecurityContextPersistenceFilter中在最后存Context时新建的Session丢失 -->
+	<security:http entry-point-ref="casEntryPoint"
+		use-expressions="true" create-session="always" path-type="ant">
+		<!-- 在web.xml中把filterProxy的pattern设置成了与dispatcher一致，所以所有经过的url都要拦截 -->
+		<security:intercept-url pattern="/**"
+			access="isAuthenticated()" />
+		<security:form-login default-target-url="/App/app.jsp" always-use-default-target="true"/>
+		<security:session-management>
+			<security:concurrency-control
+				expired-url="#{env.casServerUrl}/login" error-if-maximum-exceeded="true"
+				max-sessions="1" />
+		</security:session-management>
+		<security:custom-filter ref="requestSingleLogoutFilter"
+			before="LOGOUT_FILTER" />
+		<security:logout logout-success-url="/j_spring_cas_security_logout" />
+		<security:custom-filter ref="singleLogoutFilter"
+			before="CAS_FILTER" />
+		<security:custom-filter position="CAS_FILTER"
+			ref="casFilter" />
+		<security:custom-filter position="LAST"
+			ref="orgContextFilter" />
+	</security:http>
+
+	<bean id="casServiceProperties" class="org.springframework.security.cas.ServiceProperties">
+		<property name="service" value="#{env.casCcsUrl}/j_spring_cas_security_check" />
+		<property name="sendRenew" value="false" />
+	</bean>
+	<bean id="casFilter"
+		class="org.springframework.security.cas.web.CasAuthenticationFilter">
+		<property name="authenticationManager" ref="authenticationManager" />
+	</bean>
+	<bean id="orgContextFilter"
+		class="com.sunline.kylin.web.org.server.OrganizationContextFilter" />
+	<bean id="casEntryPoint" class="com.sunline.kylin.web.server.GWTCasEntryPoint">
+		<property name="loginUrl" value="#{env.casServerUrl}/login" />
+		<property name="serviceProperties" ref="casServiceProperties" />
+	</bean>
+	<security:authentication-manager alias="authenticationManager">
+		<security:authentication-provider
+			ref="casAuthenticationProvider" />
+	</security:authentication-manager>
+
+	<!-- 基于CAS的认证服务 -->
+	<bean id="casAuthenticationProvider"
+		class="org.springframework.security.cas.authentication.CasAuthenticationProvider">
+		<property name="serviceProperties" ref="casServiceProperties" />
+		<property name="ticketValidator">
+			<bean class="org.jasig.cas.client.validation.Cas20ServiceTicketValidator">
+				<constructor-arg index="0" value="#{env.casValidateUrl}" />
+			</bean>
+		</property>
+		<property name="key" value="gmp" />
+		<property name="authenticationUserDetailsService" ref="securityFacility" />
+	</bean>
+
+	<!-- 单点登出处理，外加web.xml里的listener，这些都是照spring security 3.1+ 手册里配的，请参考。 -->
+	<bean id="singleLogoutFilter" class="org.jasig.cas.client.session.SingleSignOutFilter" />
+	<!-- This filter redirects to the CAS Server to signal Single Logout should 
+		be performed -->
+	<bean id="requestSingleLogoutFilter"
+		class="org.springframework.security.web.authentication.logout.LogoutFilter">
+		<constructor-arg
+			value="#{env.casServerUrl}/logout?reloginUrl=#{env.casCcsUrl}" />
+		<constructor-arg>
+			<bean
+				class="org.springframework.security.web.authentication.logout.SecurityContextLogoutHandler" />
+		</constructor-arg>
+		<property name="filterProcessesUrl" value="/j_spring_cas_security_logout" />
+	</bean>
+	
+	<bean id="securityServiceImpl" class="com.sunline.kylin.web.org.server.security.SecurityServiceImpl" />
+
+	<!-- 调用GMP服务的用户信息基础设施，位于gmp-service-sdk包中 -->
+	<bean id="securityFacility" class="com.sunline.kylin.web.server.SecurityFacility">
+		<property name="securityService" ref="securityServiceImpl" />
+	</bean>
+</beans>

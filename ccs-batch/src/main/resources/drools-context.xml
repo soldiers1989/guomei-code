@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:drools="http://drools.org/schema/drools-spring"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.1.xsd
+                           http://drools.org/schema/drools-spring http://drools.org/schema/drools-spring.xsd">
+
+	<drools:kbase id="fileRules">
+		<drools:resources>
+			<drools:resource source="classpath:drools/txncode.xls" type="DTABLE">
+				<drools:decisiontable-conf input-type="XLS" worksheet-name="入账交易码生成"/>
+			</drools:resource>
+			<drools:resource source="classpath:drools/txncode.xls" type="DTABLE">
+				<drools:decisiontable-conf input-type="XLS" worksheet-name="单转双逻辑"/>
+			</drools:resource>
+		</drools:resources>
+
+		<drools:configuration>
+			<drools:mbeans enabled="true" />
+			<drools:event-processing-mode mode="STREAM" />
+		</drools:configuration>
+	</drools:kbase>
+</beans>

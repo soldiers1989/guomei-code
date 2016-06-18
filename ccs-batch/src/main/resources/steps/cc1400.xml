@@ -1,0 +1,188 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+	
+
+
+	<bean id="p1401PreMergeTransFlow" class="com.sunline.ccs.batch.common.SimpleFileMergeTasklet" >
+		<property name="sources">
+			<list>
+				<ref bean="resS1401MSxfPayTranFlow" />
+				<ref bean="resS1401MSxfWithholdTranFlow" />
+			</list>
+		</property>
+		<property name="target" ref="resS1401MSxfTranFlow" />
+		<property name="isEndOfNewLine" value="false" />
+	</bean>
+	
+	<bean id="r1402" class="com.sunline.ark.batch.VariableFileItemReader" scope="step">
+		<description>马上支付对账流水文件</description>
+		<property name="lineSperator" value="\|" />
+		<property name="resource" ref="resS1401MSxfTranFlow" />
+		<property name="detailClass" value="com.sunline.ppy.dictionary.exchange.MsxfTranFlow" />
+	</bean>
+	<bean id="p1402" class="com.sunline.ccs.batch.cc1400.P1402MsxfAcctCheck" scope="step"/>
+	
+	<bean id="w1402"  class="com.sunline.ark.batch.PropertyDelegateWriter" scope="step" >
+		<property name="writers">
+			<map>
+				<entry key="msxfTransMatchErrRpt" value-ref="w1402MsxfTransMatchErrRpt" />
+				<entry key="msxfTransMatchSucRpt"  value-ref="w1402MsxfTransMatchSucRpt" />
+			</map>
+		</property>
+	</bean>
+	
+	<bean id="w1402MsxfTransMatchErrRpt" class="com.sunline.ark.batch.YakPartitionFileItemWriter" scope="step">
+		<description>马上支付对账-马上流水异常文件</description>
+		<property name="resource" ref="resS1402MsxfTranFlowMatchErrRpt"/>
+		<property name="fileDetailClass" value="com.sunline.ppy.dictionary.report.ccs.MsxfMatchErrRpt"/>
+	</bean>
+	<bean id="w1402MsxfTransMatchSucRpt" class="com.sunline.ark.batch.YakPartitionFileItemWriter" scope="step">
+	<description>马上支付对账成功文件</description>
+		<property name="resource" ref="resS1402MsxfMatchSuccRpt"/>
+		<property name="fileDetailClass" value="com.sunline.ppy.dictionary.report.ccs.MsxfMatchSuccRpt"/>
+	</bean>
+	
+	<bean id="t1402FileMerger" class="com.sunline.ark.batch.FileMergerTasklet">
+		<property name="taskExecutor" ref="asyncTaskExecutor"/>
+		<property name="pollInterval" value="#{env['pollInterval']?:2000}" />
+		<property name="resources" >
+			<list>
+				<ref bean="resS1402MsxfTranFlowMatchErrRpt" />
+				<ref bean="resS1402MsxfMatchSuccRpt" />
+			</list>
+		</property>
+	</bean>
+	
+	<bean id="r1403" class="com.sunline.ccs.batch.cc1400.R1403MsxfUnmatchedOrder" scope="step"/>
+	<bean id="w1403" class="com.sunline.ark.batch.YakPartitionFileItemWriter" scope="step" >
+		<description>马上支付对账-未匹配订单</description>
+		<property name="resource" ref="resS1403MsxfUnmatchedOrderRpt" /> 
+		<property name="fileDetailClass" value="com.sunline.ppy.dictionary.report.ccs.MsxfMatchErrRpt" />
+	</bean>
+	
+	<bean id="t1403FileMerger" class="com.sunline.ark.batch.FileMergerTasklet">
+		<property name="taskExecutor" ref="asyncTaskExecutor"/>
+		<property name="pollInterval" value="#{env['pollInterval']?:2000}" />
+		<property name="resources" >
+			<list>
+				<ref bean="resS1403MsxfUnmatchedOrderRpt" />
+			</list>
+		</property>
+	</bean>
+	
+	<bean id="t1403MergeMatchErrRpt"  class="com.sunline.ccs.batch.common.SimpleFileMergeTasklet">
+		<description></description>
+		<property name="sources">
+			<list>
+				<ref bean="resS1402MsxfTranFlowMatchErrRpt" />
+				<ref bean="resS1403MsxfUnmatchedOrderRpt" />
+			</list>
+		</property>
+		<property name="target" ref="resS1402MsxfMatchErrRpt" />
+	</bean>
+	
+	<bean id="r1404" class="com.sunline.ccs.batch.cc1400.R1404MsxfOrder" scope="step"/>
+	<bean id="p1404" class="com.sunline.ccs.batch.cc1400.P1404MsxfOrderClean" scope="step"/>
+	<bean id="w1404" class="com.sunline.ark.batch.PropertyDelegateWriter" scope="step">
+		<property name="writers">
+			<map>
+				<entry key="msxfOrderHstDaygenRpt" value-ref="w1404OrderHstDaygenRpt"/>
+ 				<entry key="msxfOrderExpiredRpt" value-ref="w1404OrderExpiredRpt"/> 
+			</map>
+		</property>
+	</bean>
+	
+	<bean id="w1404OrderHstDaygenRpt" class="com.sunline.ark.batch.YakPartitionFileItemWriter" scope="step">
+		<property name="resource" ref="resS1404MsxfOrderHstDaygenRpt"/>
+		<property name="fileDetailClass" value="com.sunline.ppy.dictionary.report.ccs.MsxfOrderHstDaygenRpt"/>
+	</bean>
+	<bean id="w1404OrderExpiredRpt" class="com.sunline.ark.batch.YakPartitionFileItemWriter" scope="step">
+		<property name="resource" ref="resS1404MsxfOrderExpiredRpt"/>
+		<property name="fileDetailClass" value="com.sunline.ppy.dictionary.report.ccs.MsxfOrderExpiredRpt"/>
+	</bean>
+	
+	<bean id="t1404FileMerger" class="com.sunline.ark.batch.FileMergerTasklet">
+		<property name="taskExecutor" ref="asyncTaskExecutor"/>
+		<property name="pollInterval" value="#{env['pollInterval']?:2000}" />
+		<property name="resources" >
+			<list>
+				<ref bean="resS1404MsxfOrderHstDaygenRpt" />
+				<ref bean="resS1404MsxfOrderExpiredRpt" />
+			</list>
+		</property>
+	</bean>
+	
+	<bean id="r1405" class="com.sunline.ccs.batch.cc1400.R1405OutsideDDTxn" scope="step"/>
+	<bean id="p1405" class="com.sunline.ccs.batch.cc1400.P1405OutsideDDTxnClean" scope="step"/>
+	
+	<bean id="r1406" class="com.sunline.ark.batch.VariableFileItemReader" scope = "step">
+	<description>商户对账流水文件</description>
+		<property name="lineSperator" value="\|" />
+		<property name="resource" ref="resS1406MsxfMerchantTranFlow" />
+		<property name="detailClass" value="com.sunline.ppy.dictionary.exchange.MsxfMerchantTranFlow" />
+	</bean>
+	<bean id="p1406" class="com.sunline.ccs.batch.cc1400.P1406MerchantOrder" scope="step"/>
+	
+	<bean id="w1406"  class="com.sunline.ark.batch.PropertyDelegateWriter" scope="step" >
+		<property name="writers">
+			<map>
+				<entry key="msxfMerchantMatchErrRpt" value-ref="w1406MsxfMerchantMatchErrRpt" />
+				<entry key="msxfMerchantMatchSuccRpt"  value-ref="w1406MsxfMerchantMatchSucRpt" />
+			</map>
+		</property>
+	</bean>
+	
+	<bean id="w1406MsxfMerchantMatchErrRpt" class="com.sunline.ark.batch.YakPartitionFileItemWriter" scope="step">
+		<description>商户对账-异常文件</description>
+		<property name="resource" ref="resS1406MsxfMerchantErrRpt"/>
+		<property name="fileDetailClass" value="com.sunline.ppy.dictionary.report.ccs.MsxfMerchantMatchErrRpt"/>
+	</bean>
+	
+	<bean id="w1406MsxfMerchantMatchSucRpt" class="com.sunline.ark.batch.YakPartitionFileItemWriter" scope="step">
+	<description>商户对账-成功文件</description>
+		<property name="resource" ref="resS1406MsxfMerchantSuccRpt"/>
+		<property name="fileDetailClass" value="com.sunline.ppy.dictionary.report.ccs.MsxfMerchantMatchSuccRpt"/>
+	</bean>
+	
+	<bean id="t1406FileMerger" class="com.sunline.ark.batch.FileMergerTasklet">
+		<property name="taskExecutor" ref="asyncTaskExecutor"/>
+		<property name="pollInterval" value="#{env['pollInterval']?:2000}" />
+		<property name="resources" >
+			<list>
+				<ref bean="resS1406MsxfMerchantErrRpt" />
+				<ref bean="resS1406MsxfMerchantSuccRpt" />
+			</list>
+		</property>
+	</bean>
+	
+	<bean id="r1407" class="com.sunline.ccs.batch.cc1400.R1407MsxfMerchantUnmatchedOrder" scope="step"/>
+	<bean id="w1407" class="com.sunline.ark.batch.YakPartitionFileItemWriter" scope="step" >
+		<description>商户对账-未匹配订单</description>
+		<property name="resource" ref="resS1407MsxfMerchantUnmatchedOrderRpt" /> 
+		<property name="fileDetailClass" value="com.sunline.ppy.dictionary.report.ccs.MsxfMerchantMatchErrRpt" />
+	</bean>
+	
+	<bean id="t1407FileMerger" class="com.sunline.ark.batch.FileMergerTasklet">
+		<property name="taskExecutor" ref="asyncTaskExecutor"/>
+		<property name="pollInterval" value="#{env['pollInterval']?:2000}" />
+		<property name="resources" >
+			<list>
+				<ref bean="resS1407MsxfMerchantUnmatchedOrderRpt" />
+			</list>
+		</property>
+	</bean>
+	
+	<bean id="t1407MergeMatchErrRpt"  class="com.sunline.ccs.batch.common.SimpleFileMergeTasklet">
+		<description>合并未匹配、已匹配异常文件</description>
+		<property name="sources">
+			<list>
+				<ref bean="resS1406MsxfMerchantErrRpt" />
+				<ref bean="resS1407MsxfMerchantUnmatchedOrderRpt" />
+			</list>
+		</property>
+		<property name="target" ref="resS1406MsxfMerchantMatchErrRpt" />
+	</bean>
+	
+</beans>

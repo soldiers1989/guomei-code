@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:p="http://www.springframework.org/schema/p"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.1.xsd">
+	<!-- 马上支付回盘文件 -->
+	<bean id="resS0605MSLoanRepayment" class="com.sunline.ark.batch.ResourceFactoryBean" scope="step">
+		<description>马上支付回盘文件</description>
+		<property name="resource" value="file:#{env.batchWorkDir}/#{new java.text.SimpleDateFormat('yyyyMMdd').format(batchStatusFacility.getBatchDate())}/S0605MSLoanRepayment" />
+	</bean>
+	<!-- 调额成功报表 -->
+	<bean id="resS1502AcctCrlmtAdjSuccess" class="com.sunline.ark.batch.ResourceFactoryBean" scope="step">
+		<description>手工调额报表文件</description>
+		<property name="resource" value="file:#{env.batchWorkDir}/#{new java.text.SimpleDateFormat('yyyyMMdd').format(batchStatusFacility.getBatchDate())}/AcctCrlmtAdjSucessRpt" />
+	</bean>
+	
+	<!-- 调额失败报表 -->
+	<bean id="resS1502AcctCrlmtAdjFail" class="com.sunline.ark.batch.ResourceFactoryBean" scope="step">
+		<description>手工调额报表文件</description>
+		<property name="resource" value="file:#{env.batchWorkDir}/#{new java.text.SimpleDateFormat('yyyyMMdd').format(batchStatusFacility.getBatchDate())}/AcctCrlmtAdjFailRpt" />
+	</bean>
+	
+	<!-- 批量调额短信通知文件  -->
+	<bean id="resS8502AcctCrlmtAdjMsg" class="com.sunline.ark.batch.ResourceFactoryBean" scope="step">
+		<description>批量调额短信文件</description>
+		<property name="resource" value="file:#{env.batchWorkDir}/#{new java.text.SimpleDateFormat('yyyyMMdd').format(batchStatusFacility.getBatchDate())}/AcctCrlmtAdjMsg" />
+	</bean>
+	
+	<!-- 批量调额文件 -->
+	<bean id="resS1501LimitAdj" class="com.sunline.ark.batch.ResourceFactoryBean" scope="step">
+		<description>批量调额文件</description>
+		<property name="resource" value="file:#{env.batchWorkDir}/#{new java.text.SimpleDateFormat('yyyyMMdd').format(batchStatusFacility.getBatchDate())}/AcctBatchLimitAdj" />
+	</bean>
+	
+	<!-- 马上短信通知文件 开始 -->
+	<bean id="resA300RepaymentFailMsg" class="com.sunline.ark.batch.ResourceFactoryBean" scope="step">
+		<description>代扣失败短信文件</description>
+		<property name="resource" value="file:#{env.batchWorkDir}/#{new java.text.SimpleDateFormat('yyyyMMdd').format(batchStatusFacility.getBatchDate())}/RepaymentFailMsg" />
+	</bean>
+	<bean id="resA301MSLoanRepayMsg" class="com.sunline.ark.batch.ResourceFactoryBean" scope="step">
+		<description>马上贷还款提醒短信文件</description>
+		<property name="resource" value="file:#{env.batchWorkDir}/#{new java.text.SimpleDateFormat('yyyyMMdd').format(batchStatusFacility.getBatchDate())}/MSLoanRepayMsg" />
+	</bean>
+	<bean id="resA302WhiteListRepayMsg" class="com.sunline.ark.batch.ResourceFactoryBean" scope="step">
+		<description>白名单还款提醒短信文件</description>
+		<property name="resource" value="file:#{env.batchWorkDir}/#{new java.text.SimpleDateFormat('yyyyMMdd').format(batchStatusFacility.getBatchDate())}/WhiteListRepayMsg" />
+	</bean>
+	
+	<!-- 发送ftp的短信（汇总）文件，只上传一个汇总文件到ftp,批量短信文件接口增加四个字段   by lizz 20151221  -->
+	<bean id="resCca900MSxfSmsFile" class="com.sunline.ark.batch.ResourceFactoryBean" scope="step">
+		<description>发送ftp短信汇总文件</description>
+		<property name="resource" value="file:#{env.batchWorkDir}/#{new java.text.SimpleDateFormat('yyyyMMdd').format(batchStatusFacility.getBatchDate())}/MSxfSmsFile.txt" />
+	</bean>
+	
+	<bean id="resA303PrepaymentRemainMsg" class="com.sunline.ark.batch.ResourceFactoryBean" scope="step">
+		<description>提前还款提醒短信文件</description>
+		<property name="resource" value="file:#{env.batchWorkDir}/#{new java.text.SimpleDateFormat('yyyyMMdd').format(batchStatusFacility.getBatchDate())}/PrepaymentRemainMsg" />
+	</bean>
+</beans>

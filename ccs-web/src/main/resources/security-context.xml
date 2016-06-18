@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.springframework.org/schema/beans"
+	xmlns:security="http://www.springframework.org/schema/security"
+	xsi:schemaLocation="http://www.springframework.org/schema/security http://www.springframework.org/schema/security/spring-security-3.1.xsd
+		http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.1.xsd">
+
+	<!-- 需要定义几个property(example)： 1. casServerUrl (https://yak:8443/gmp-cas) 浏览器访问的登录地址，一般是https的 2. casValidateUrl (http://yak:8080/gmp-cas) 
+		服务器到服务器的访问，不需要http，只要直接地址 2. casBmpUrl (http://yak/bmp-app) 自身地址 -->
+
+	<!-- 支持基于AspectJ的方法级安全 -->
+	<security:global-method-security pre-post-annotations="enabled" mode="aspectj" />
+
+	<security:http pattern="/**/*.js" security="none" />
+	<security:http pattern="/**/*.png" security="none" />
+	<security:http pattern="/**/*.jpg" security="none" />
+	<security:http pattern="/**/*.ico" security="none" />
+	<security:http pattern="/**/*.gif" security="none" />
+	<security:http pattern="/index.jsp" security="none" />
+	<security:http pattern="/App/rpc/sessionServer/timeout.do" security="none" />
+
+	<!-- 如果使用FormLogin，则create-session必须设置为always，因为在GWT应用中，AJAX请求默认不会建session，所以在GWT的Servlet的响应中也就没有JSESSONID，导致SecurityContextPersistenceFilter中在最后存Context时新建的Session丢失 -->
+	<security:http use-expressions="true" create-session="always" path-type="ant" auto-config="true"
+		entry-point-ref="unauthorizedEntryPoint">
+		<security:session-management>
+			<security:concurrency-control max-sessions="1" expired-url="/App/rpc/sessionServer/timeout.do" />
+		</security:session-management>
+		<security:custom-filter ref="orgCacheFilter" after="FIRST" />
+		<!-- 在web.xml中把filterProxy的pattern设置成了与dispatcher一致，所以所有经过的url都要拦截 -->
+		<security:intercept-url pattern="/**" access="isAuthenticated()" />
+		<security:form-login login-page="/index.jsp" default-target-url="/App/app.jsp"
+			always-use-default-target="true" authentication-failure-url="/index.jsp?error=true" />
+		<security:logout />
+		<security:custom-filter position="LAST" ref="orgContextFilter" />
+	</security:http>
+	
+	<!-- 指定登录异常信息为中文 -->
+	<bean id="messageSource" class="org.springframework.context.support.ReloadableResourceBundleMessageSource">
+    	<property name="basenames" value="classpath:messages_zh_CN"/>
+    	<property name="defaultEncoding" value="utf-8"/>
+	</bean>
+
+	<bean id="unauthorizedEntryPoint" class="com.sunline.kylin.web.server.UnauthorizedEntryPoint">
+		<property name="loginUrl" value="/index.jsp" />
+	</bean>
+
+	<bean id="orgCacheFilter" class="com.sunline.kylin.web.org.server.CacheOrgFilter" />
+
+	<bean id="securityServiceImpl" class="com.sunline.kylin.web.org.server.security.SecurityServiceImpl" />
+
+	<bean id="securityFacility" class="com.sunline.kylin.web.server.SecurityFacility">
+		<property name="securityService" ref="securityServiceImpl" />
+	</bean>
+
+	<bean id="orgContextFilter" class="com.sunline.kylin.web.org.server.OrganizationContextFilter" />
+
+	<bean id="saltSource" class="org.springframework.security.authentication.dao.ReflectionSaltSource">
+		<property name="userPropertyToUse" value="username" />
+	</bean>
+
+	<bean id="passwordEncoder" class="org.springframework.security.authentication.encoding.ShaPasswordEncoder">
+		<constructor-arg value="256" />
+	</bean>
+
+	<security:authentication-manager alias="authenticationManager">
+		<security:authentication-provider user-service-ref="securityFacility" >
+			<security:password-encoder ref="passwordEncoder">
+				<security:salt-source user-property="username" />
+			</security:password-encoder>
+		</security:authentication-provider>
+	</security:authentication-manager>
+</beans>

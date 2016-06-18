@@ -1,0 +1,153 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<beans default-lazy-init="false"
+	xmlns:p="http://www.springframework.org/schema/p"
+	xmlns="http://www.springframework.org/schema/beans"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:util="http://www.springframework.org/schema/util"
+	xmlns:jee="http://www.springframework.org/schema/jee"
+	xmlns:jms="http://www.springframework.org/schema/jms"
+	xmlns:batch="http://www.springframework.org/schema/batch"
+	xmlns:task="http://www.springframework.org/schema/task"
+	xsi:schemaLocation="http://www.springframework.org/schema/jee http://www.springframework.org/schema/jee/spring-jee-3.1.xsd
+		http://www.springframework.org/schema/jms http://www.springframework.org/schema/jms/spring-jms-3.1.xsd
+		http://www.springframework.org/schema/task http://www.springframework.org/schema/task/spring-task-3.2.xsd
+		http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.1.xsd
+		http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util-3.1.xsd
+		http://www.springframework.org/schema/batch http://www.springframework.org/schema/batch/spring-batch.xsd
+		http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-3.1.xsd">
+
+
+	<!-- 导入步骤定义 -->
+	<import resource="test-steps-cca000.xml"/>
+	<import resource="test-steps-cca-general.xml"/>
+	
+	<!-- rpc -->
+<!-- 	<import resource="test-rpc-context.xml"/> -->
+	
+	<!-- 用于支持并发批量的线程池 -->
+	<task:executor id="asyncTaskExecutor" pool-size="#{env['batchTaskPoolSize'] ?: 16}"/>
+	
+	<batch:job id="SA000Job" >
+		<!-- 送阳光文件 放款/贷款明细 -->
+		<batch:step id="cca001YGLoanDetail" next="cca002YGRpyPlan">
+			<batch:partition partitioner="ra001">
+				<batch:handler grid-size="#{env['GridSize']?:16}" task-executor="asyncTaskExecutor"/>
+				<batch:step>
+					<batch:tasklet>
+						<batch:chunk reader="ra001" processor="pa001" writer="wa001"  commit-interval="#{env['commitInterval'] ?: 100}" />
+				 	</batch:tasklet>
+				</batch:step>
+			</batch:partition>
+		</batch:step>
+	
+		<!-- 送阳光文件 贷款期供 -->
+		<batch:step id="cca002YGRpyPlan" next="cca003YGRpyDetail">
+			<batch:partition partitioner="ra002">
+				<batch:handler grid-size="#{env['GridSize']?:16}" task-executor="asyncTaskExecutor"/>
+				<batch:step>
+					<batch:tasklet>
+						<batch:chunk reader="ra002" writer="wa002"  commit-interval="#{env['commitInterval'] ?: 100}" />
+				 	</batch:tasklet>
+				</batch:step>
+			</batch:partition>
+		</batch:step>
+	
+		<!-- 送阳光文件 贷款还款信息 -->
+		<batch:step id="cca003YGRpyDetail" next="cca004YGInsuredAmtStatus">
+			<batch:partition partitioner="ra003">
+				<batch:handler grid-size="#{env['GridSize']?:16}" task-executor="asyncTaskExecutor"/>
+				<batch:step>
+					<batch:tasklet>
+						<batch:chunk reader="ra003" processor="pa003" writer="wa003"  commit-interval="#{env['commitInterval'] ?: 100}" />
+				 	</batch:tasklet>
+				</batch:step>
+			</batch:partition>
+		</batch:step>
+	
+		<!-- 送阳光文件 保费期供 -->
+		<batch:step id="cca004YGInsuredAmtStatus" next="cca005YGInsuredAmtRpyInfo">
+			<batch:partition partitioner="ra004">
+				<batch:handler grid-size="#{env['GridSize']?:16}" task-executor="asyncTaskExecutor"/>
+				<batch:step>
+					<batch:tasklet>
+						<batch:chunk reader="ra004" writer="wa004"  commit-interval="#{env['commitInterval'] ?: 100}" />
+				 	</batch:tasklet>
+				</batch:step>
+			</batch:partition>
+		</batch:step>
+	
+		<!-- 送阳光文件 保费还款 -->
+		<batch:step id="cca005YGInsuredAmtRpyInfo" next="cca006YGClaimInfo">
+			<batch:partition partitioner="ra005">
+				<batch:handler grid-size="#{env['GridSize']?:16}" task-executor="asyncTaskExecutor"/>
+				<batch:step>
+					<batch:tasklet>
+						<batch:chunk reader="ra005" processor="pa005" writer="wa005"  commit-interval="#{env['commitInterval'] ?: 100}" />
+				 	</batch:tasklet>
+				</batch:step>
+			</batch:partition>
+		</batch:step>
+	
+		<!-- 送阳光文件 预理赔 -->
+		<batch:step id="cca006YGClaimInfo" next="cca007YGConfirmClaimInfo">
+			<batch:partition partitioner="ra006" >
+				<batch:handler grid-size="#{env['GridSize']?:16}" task-executor="asyncTaskExecutor"/>
+				<batch:step>
+					<batch:tasklet>
+						<batch:chunk reader="ra006" processor="pa006" writer="wa006"  commit-interval="#{env['commitInterval'] ?: 100}" />
+				 	</batch:tasklet>
+				</batch:step>
+			</batch:partition>
+		</batch:step>
+	
+		<!-- 送阳光文件 理赔处理结果 -->
+		<batch:step id="cca007YGConfirmClaimInfo" next="cca008YGPenalInfo">
+			<batch:partition partitioner="ra007">
+				<batch:handler grid-size="#{env['GridSize']?:16}" task-executor="asyncTaskExecutor"/>
+				<batch:step>
+					<batch:tasklet>
+						<batch:chunk reader="ra007" writer="wa007"  commit-interval="#{env['commitInterval'] ?: 100}" />
+				 	</batch:tasklet>
+				</batch:step>
+			</batch:partition>
+		</batch:step>
+	
+		<!-- 送阳光文件 提前还款时所收违约金信息 -->
+		<batch:step id="cca008YGPenalInfo" next="cca009YGStatInfo">
+			<batch:partition partitioner="ra008">
+				<batch:handler grid-size="#{env['GridSize']?:16}" task-executor="asyncTaskExecutor"/>
+				<batch:step>
+					<batch:tasklet>
+						<batch:chunk reader="ra008" writer="wa008"  commit-interval="#{env['commitInterval'] ?: 100}" />
+				 	</batch:tasklet>
+				</batch:step>
+			</batch:partition>
+		</batch:step>
+	
+		<!-- 送阳光文件 对账文件 -->
+		<batch:step id="cca009YGStatInfo" next="ma000YGFileMerge">
+			<batch:tasklet>
+				<batch:chunk reader="ra009" processor="pa009" writer="wa009"  commit-interval="#{env['commitInterval'] ?: 100}" />
+		 	</batch:tasklet>
+		</batch:step>
+		
+		<batch:step id= "ma000YGFileMerge" next="cca291SendYGFile">
+			<batch:tasklet ref="ma000" />
+		</batch:step>
+		
+		<!-- 发送文件给阳光 -->
+       	<batch:step id="cca291SendYGFile"  >
+        	<batch:tasklet ref="oa291"/>
+        </batch:step>
+        
+        <!-- 阳光 结算文件 -->
+<!-- 		<batch:step id="cca100Settle"> -->
+<!-- 			<batch:tasklet> -->
+<!-- 				<batch:chunk reader="ra100" processor="pa100" writer="wa100" commit-interval="100" /> -->
+<!-- 		 	</batch:tasklet> -->
+<!-- 		</batch:step> -->
+
+	</batch:job>
+
+</beans>

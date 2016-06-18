@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:p="http://www.springframework.org/schema/p"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.1.xsd">
+
+	<bean id="S0605MSLoanRepayment" class="com.sunline.ark.batch.ResourceFactoryBean">
+		<description>马上贷款回盘文件</description>
+		<property name="resource" value="file:#{env.batchWorkDir}/S0605MSLoanRepayment" />
+	</bean>
+
+	<!-- S0000 建账相关接口 开始 -->
+	<bean id="S0000Apply" class="com.sunline.ark.batch.ResourceFactoryBean">
+		<description>申请文件</description>
+		<property name="resource" value="file:#{env.batchWorkDir}/S0000Apply" />
+	</bean>
+	<bean id="S000001Success" class="com.sunline.ark.batch.ResourceFactoryBean">
+		<description>申请成功报表接口</description>
+		<property name="resource" value="file:#{env.batchWorkDir}/S000001Success" />
+	</bean>
+	<bean id="S000002SMS" class="com.sunline.ark.batch.ResourceFactoryBean">
+		<description>申请短信</description>
+		<property name="resource" value="file:#{env.batchWorkDir}/S000002SMS" />
+	</bean>
+	
+	<bean id="resS1406MsxfMerchantTranFlow" class="com.sunline.ark.batch.ResourceFactoryBean" scope="step">
+		<description>马上商户对账流水文件</description>
+		<property name="resource" value="file:#{env.batchWorkDir}/#{new java.text.SimpleDateFormat('yyyyMMdd').format(batchStatusFacility.getBatchDate())}/S1406MsxfMerchantTranFlow" />
+	</bean>
+	
+	<bean id="resS1406MsxfMerchantSuccRpt" class="com.sunline.ark.batch.ResourceFactoryBean" scope="step">
+		<description>商户对账-成功文件</description>
+		<property name="resource" value="file:#{env.batchWorkDir}/#{new java.text.SimpleDateFormat('yyyyMMdd').format(batchStatusFacility.getBatchDate())}/msUpload/MsxfMerchantSuccRpt" />
+	</bean>
+	
+	<bean id="resS1406MsxfMerchantErrRpt" class="com.sunline.ark.batch.ResourceFactoryBean" scope="step">
+		<description>商户对账-异常文件</description>
+		<property name="resource" value="file:#{env.batchWorkDir}/#{new java.text.SimpleDateFormat('yyyyMMdd').format(batchStatusFacility.getBatchDate())}/msUpload/MsxfMerchantErrRpt" />
+	</bean>
+	
+	<bean id="resS1407MsxfMerchantUnmatchedOrderRpt" class="com.sunline.ark.batch.ResourceFactoryBean" scope="step">
+		<description>商户对账异常文件-未匹配的核心订单</description>
+		<property name="resource" value="file:#{env.batchWorkDir}/#{new java.text.SimpleDateFormat('yyyyMMdd').format(batchStatusFacility.getBatchDate())}/msUpload/MsxfMerchantUnmatchedOrderRpt" />
+	</bean>
+	
+	<bean id="resS1406MsxfMerchantMatchErrRpt" class="com.sunline.ark.batch.ResourceFactoryBean" scope="step">
+		<description>商户对账-匹配异常文件合并文件(包含未匹配、异常文件)</description>
+		<property name="resource" value="file:#{env.batchWorkDir}/#{new java.text.SimpleDateFormat('yyyyMMdd').format(batchStatusFacility.getBatchDate())}/msUpload/MsxfMerchantMatchErrRpt" />
+	</bean>
+	
+	<bean id="resS1777" class="com.sunline.ark.batch.ResourceFactoryBean" scope="step">
+		<description>测试</description>
+		<property name="resource" value="file:#{env.batchWorkDir}/#{new java.text.SimpleDateFormat('yyyyMMdd').format(batchStatusFacility.getBatchDate())}/FileReaderTest" />
+	</bean>
+	
+	<bean id="resS1778" class="com.sunline.ark.batch.ResourceFactoryBean" scope="step">
+		<description>跑批时间</description>
+		<property name="resource" value="file:#{env.batchWorkDir}/#{new java.text.SimpleDateFormat('yyyyMMdd').format(batchStatusFacility.getBatchDate())}/BatchStatistic" />
+	</bean>
+</beans>

@@ -1,0 +1,66 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+	<parent>
+		<groupId>com.sunline.ccs</groupId>
+		<artifactId>ccs-parent</artifactId>
+		<version>1.1.0-SNAPSHOT</version>
+		<relativePath>..</relativePath>
+	</parent>
+	<artifactId>ccs-param-ui</artifactId>
+	<name>ccs - Parameter - UI - 参数配置界面（通用业务参数）</name>
+	<dependencies>
+		<dependency>
+			<groupId>com.sunline.pcm</groupId>
+			<artifactId>pcm-service-sdk</artifactId>
+			<exclusions>
+				<exclusion>
+					<groupId>com.sunline.kylin.web</groupId>
+					<artifactId>kylin-web-core</artifactId>
+				</exclusion>
+			</exclusions>
+		</dependency>
+		<dependency>
+			<groupId>com.sunline.pcm</groupId>
+			<artifactId>pcm-facility</artifactId>
+			<exclusions>
+				<exclusion>
+					<groupId>com.sunline.kylin.web</groupId>
+					<artifactId>kylin-web-core</artifactId>
+				</exclusion>
+			</exclusions>
+		</dependency>
+		<dependency>
+			<groupId>com.sunline.ccs</groupId>
+			<artifactId>ccs-param-def</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>com.sunline.ccs</groupId>
+			<artifactId>ccs-infrastructure</artifactId>
+			<exclusions>
+				<exclusion>
+					<groupId>com.sunline.kylin.web</groupId>
+					<artifactId>kylin-web-core</artifactId>
+				</exclusion>
+			</exclusions>
+		</dependency>
+		<dependency>
+			<!-- pcs依赖ccs-param-ui，两个工程依赖的kylin-web版本不同，
+			虽然屏蔽了传递依赖，本地开发的情况下，工程属于打开状态，依旧会传递依赖，
+			导致页面无法进入，所以这里强制依赖了和pcs-web依赖的同一个版本的kylin-web -->
+			<groupId>com.sunline.kylin.web</groupId>
+			<artifactId>kylin-web-code-ui</artifactId>
+			<version>1.1.2-SNAPSHOT</version>
+			<exclusions>
+				<exclusion>
+					<groupId>com.sunline.kylin.web</groupId>
+					<artifactId>kylin-web-core</artifactId>
+				</exclusion>
+			</exclusions>
+		</dependency>
+		<dependency>
+			<groupId>com.sunline.kylin.web</groupId>
+			<artifactId>kylin-web-core</artifactId>
+			<version>1.1.2-SNAPSHOT</version>
+		</dependency>
+	</dependencies>
+</project>

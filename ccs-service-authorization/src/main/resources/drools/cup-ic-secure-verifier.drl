@@ -1,0 +1,123 @@
+package com.sunline.ccs.service.authroization
+ 
+import java.util.Map;
+import com.sunline.ccs.param.def.enums.AuthReason;
+import com.sunline.ccs.param.def.enums.AuthAction;
+import com.sunline.ccs.param.def.AuthProduct;
+import com.sunline.ppy.api.MediumInfo;
+import com.sunline.ppy.dictionary.enums.Indicator;
+import com.sunline.ccs.param.def.enums.CheckType;
+import com.sunline.ccs.param.def.enums.VerifyEnum;
+import com.sunline.ppy.dictionary.enums.InputSource;
+import com.sunline.ppy.dictionary.enums.AuthTransType;
+import com.sunline.ccs.param.def.enums.AuthVerifyAction;
+import com.sunline.ppy.dictionary.enums.TrackVerifyResult;
+import com.sunline.ccs.param.def.enums.AuthTransTerminal;
+import com.sunline.ppy.dictionary.enums.PasswordVerifyResult;
+import com.sunline.ccs.infrastructure.shared.model.CcsCardO;
+import com.sunline.ccs.service.auth.context.TxnInfo;
+import com.sunline.ccs.service.auth.context.CupMsg;
+import com.sunline.ccs.param.def.MerchantTxnCrtl;
+import com.sunline.ppy.dictionary.enums.TransMedium;
+
+
+import org.slf4j.Logger;
+global Map<AuthReason, AuthAction> result;
+ 
+
+
+rule "[Ic_001] 禁止fallback交易"
+	
+	when  
+		TxnInfo( checkList contains "Ic_001" )
+		TxnInfo(transMedium == TransMedium.Fallback )
+		TxnInfo( isCupXborder() != true )
+		MediumInfo( icInd == Indicator.Y )		
+		$authProduct :AuthProduct()  
+		$logger : Logger()	
+	then	
+		$logger.debug("# drools-rule:[Ic_001]-TI02");
+		result.put(AuthReason.TI02, $authProduct.reasonActions.get(AuthReason.TI02));
+end
+
+
+rule "[Ic_002] icvn验证"
+	
+	when  
+		TxnInfo( checkList contains "Ic_002" )
+		MediumInfo(icvnVerifyResult == PasswordVerifyResult.Decline )
+		TxnInfo(transMedium == TransMedium.IcCard )
+		$authProduct :AuthProduct()  
+		$logger : Logger()	
+	then	
+		$logger.debug("# drools-rule:[Ic_002]-I001");
+		result.put(AuthReason.I001, $authProduct.reasonActions.get(AuthReason.I001));
+end
+
+
+rule "[Ic_003] arqc错验证"
+	
+	when  
+		TxnInfo( checkList contains "Ic_003" )
+		MediumInfo(arqcVerifyResult == PasswordVerifyResult.Decline )
+		TxnInfo(transMedium == TransMedium.IcCard )
+		$authProduct : AuthProduct()  
+		$logger : Logger()	
+	then	
+		$logger.debug("# drools-rule:[Ic_003]-I005");
+		result.put(AuthReason.I005, $authProduct.reasonActions.get(AuthReason.I005));
+end
+
+rule "[Ic_004] arqc未上送验证"
+	
+	when  
+		TxnInfo( checkList contains "Ic_004" )
+		MediumInfo(arqcVerifyResult == PasswordVerifyResult.NoThisField )
+		TxnInfo(transMedium == TransMedium.IcCard )
+		$authProduct : AuthProduct(verifyActions[VerifyEnum.IcArqcVerify] == AuthVerifyAction.Must)  
+		$logger : Logger()	
+	then	
+		$logger.debug("# drools-rule:[Ic_004]-I006");
+		result.put(AuthReason.I006, $authProduct.reasonActions.get(AuthReason.I006));
+end
+
+
+rule "[Ic_005] atc验证" 
+	
+	when  
+		TxnInfo( checkList contains "Ic_005" )
+		MediumInfo(atcVerifyResult == PasswordVerifyResult.Decline )
+		$authProduct :AuthProduct()  
+		$logger : Logger()	
+	then	
+		$logger.debug("# drools-rule:[Ic_005]-I002");
+		result.put(AuthReason.I002, $authProduct.reasonActions.get(AuthReason.I002));
+end
+
+
+rule "[Ic_006] cvr验证"
+	
+	when  
+		TxnInfo( checkList contains "Ic_006" )
+		MediumInfo(cvrVerifyResult == PasswordVerifyResult.Decline )
+		$authProduct :AuthProduct()  
+		$logger : Logger()	
+	then	
+		$logger.debug("# drools-rule:[Ic_006]-I008");
+		result.put(AuthReason.I008, $authProduct.reasonActions.get(AuthReason.I008)); 
+end
+
+
+rule "[Ic_007] tvr验证"
+	
+	when  
+		TxnInfo( checkList contains "Ic_007" )
+		MediumInfo(tvrVerifyResult == PasswordVerifyResult.Decline )
+		TxnInfo(transMedium == TransMedium.IcCard )
+		$authProduct :AuthProduct()  
+		$logger : Logger()	
+	then	
+		$logger.debug("# drools-rule:[Ic_007]-I007");
+		result.put(AuthReason.I007, $authProduct.reasonActions.get(AuthReason.I007)); 
+end
+ 

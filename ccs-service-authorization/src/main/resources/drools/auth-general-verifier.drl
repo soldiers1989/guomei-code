@@ -1,0 +1,122 @@
+package com.sunline.ccs.service.authroization
+ 
+import java.util.Map;
+import com.sunline.ccs.param.def.enums.AuthReason;
+import com.sunline.ccs.param.def.enums.AuthAction;
+import com.sunline.ccs.param.def.AuthProduct;
+import com.sunline.ppy.api.MediumInfo;
+import com.sunline.ppy.dictionary.enums.BlackWhiteCode;
+import com.sunline.ccs.param.def.enums.AuthFlagAction;
+import com.sunline.ccs.param.def.enums.AuthTransTerminal;
+import com.sunline.ppy.dictionary.enums.PasswordVerifyResult;
+import com.sunline.ccs.service.auth.context.TxnInfo;
+import org.slf4j.Logger;
+global Map<AuthReason, AuthAction> result;
+
+rule "[Gen_002] 检验卡片是否黑名单"
+	/*
+	*	卡片黑名单标志 = 黑名单
+	*/
+	when
+		TxnInfo( checkList contains "Gen_002" )
+		MediumInfo(cardBlackFlag == BlackWhiteCode.B)
+		$authProduct : AuthProduct()
+		$logger : Logger()
+	then		
+		$logger.debug("# drools-rule:[Gen_002]-V011");
+		result.put( AuthReason.V011, $authProduct.reasonActions.get(AuthReason.V011) );
+end
+
+rule "[Gen_003] 检验商户黑名单"
+	/*
+	*	商户黑名单标志 = 黑名单
+	*/
+	when
+		TxnInfo( checkList contains "Gen_003" )
+		MediumInfo(merchantBlackFlag == BlackWhiteCode.B)
+		$authProduct : AuthProduct()
+		$logger : Logger()
+	then		
+		$logger.debug("# drools-rule:[Gen_003]-V010");
+		result.put( AuthReason.V010, $authProduct.reasonActions.get(AuthReason.V010) );
+end
+
+rule "[Gen_004] 检验cvv是否为加密机错"
+	/*
+	*	卡管Cvv验证结果 = 加密机错
+	*/
+	when
+		TxnInfo( checkList contains "Gen_004" )
+		MediumInfo(cvvVerifyResult == PasswordVerifyResult.HsmFail)
+		$authProduct : AuthProduct()
+		$logger : Logger()
+	then		
+		$logger.debug("# drools-rule:[Gen_004]-S002");
+		result.put( AuthReason.S002, $authProduct.reasonActions.get(AuthReason.S002) );
+end
+
+rule "[Gen_005] 检验cvv2是否为加密机错"
+	/*
+	*	卡管Cvv2验证结果 = 加密机错
+	*/
+	when
+		TxnInfo( checkList contains "Gen_005" )
+		MediumInfo(cvv2VerifyResult == PasswordVerifyResult.HsmFail)
+		$authProduct : AuthProduct()
+		$logger : Logger()
+	then		
+		$logger.debug("# drools-rule:[Gen_005]-S002");
+		result.put( AuthReason.S002, $authProduct.reasonActions.get(AuthReason.S002) );
+end
+
+rule "[Gen_006] 检验cavv是否为加密机错"
+	/*
+	*	卡管Cavv验证结果 = 加密机错
+	*/
+	when
+		TxnInfo( checkList contains "Gen_006" )
+		MediumInfo(cavvVerifyResult == PasswordVerifyResult.HsmFail)
+		$authProduct : AuthProduct()
+		$logger : Logger()
+	then		
+		$logger.debug("# drools-rule:[Gen_006]-S002");
+		result.put( AuthReason.S002, $authProduct.reasonActions.get(AuthReason.S002) );
+end
+
+
+rule "[Gen_007] icvn加密机错验证"
+	
+	when  
+		TxnInfo( checkList contains "Gen_007" )
+		MediumInfo(icvnVerifyResult == PasswordVerifyResult.HsmFail)
+		$authProduct :AuthProduct()  
+		$logger : Logger()
+	then		
+		$logger.debug("# drools-rule:[Gen_007]-S002");
+		result.put(AuthReason.S002, $authProduct.reasonActions.get(AuthReason.S002));
+end
+
+
+rule "[Gen_008] arqc加密机错验证"
+	
+	when  
+		TxnInfo( checkList contains "Gen_008" )
+		MediumInfo(arqcVerifyResult == PasswordVerifyResult.HsmFail)
+		$authProduct : AuthProduct()  
+		$logger : Logger()
+	then		
+		$logger.debug("# drools-rule:[Gen_008]-S002");
+		result.put(AuthReason.S002, $authProduct.reasonActions.get(AuthReason.S002));
+end
+
+rule "[Gen_009] 密码加密机错验证"
+     
+     when 
+        TxnInfo( checkList contains "Gen_009" )
+        MediumInfo( passwordVerifyResult == PasswordVerifyResult.HsmFail )
+        $authProduct : AuthProduct() 
+     	$logger : Logger()
+     then		
+     	$logger.debug("# drools-rule:[Gen_009]-S002");
+        result.put(AuthReason.S002, $authProduct.reasonActions.get(AuthReason.S002));
+ end

@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+
+	<bean id="r6101" class="com.sunline.ccs.batch.cc6100.R6101Statement" scope="step"/>
+
+	<bean id="p6101" class="com.sunline.ccs.batch.cc6100.P6101Statement" scope="step"/>
+	
+	<!-- <bean id="w6101StmtTxn" class="com.sunline.acm.service.sdk.BatchFileWriter" scope="step">
+		<description>账单交易明细文件</description>
+		<property name="fileDetailClass" value="com.sunline.ppy.dictionary.exchange.StmttxnInterfaceItem"/>
+		<property name="filename" value="S6500StmtTxn"/>
+		<property name="charset" value="GBK"/>
+	</bean>
+
+	<bean id="w6101Stmt" class="com.sunline.acm.service.sdk.BatchFileWriter" scope="step">
+		<description>账单汇总文件</description>
+		<property name="fileDetailClass" value="com.sunline.ppy.dictionary.exchange.StmtInterfaceItem"/>
+		<property name="filename" value="S6500Stmt"/>
+	</bean>
+	
+	<bean id="w6101StmtMsg" class="com.sunline.acm.service.sdk.BatchFileWriter" scope="step">
+		<description>账单提醒短信</description>
+		<property name="fileDetailClass" value="com.sunline.smsd.service.sdk.StmtMsgInterfaceItem"/>
+		<property name="filename" value="S6500StmtMsg"/>
+	</bean> -->
+	
+		<bean id="w6101StmtTxn" class="com.sunline.ark.batch.YakPartitionFileItemWriter" scope="step">
+		<description>账单交易明细文件 </description>
+		<property name="fileDetailClass" value="com.sunline.ppy.dictionary.exchange.StmttxnInterfaceItem"/>
+		<property name="resource" ref="resS650001Stmttxn"/>
+	</bean>
+	<bean id="w6101Stmt" class="com.sunline.ark.batch.YakPartitionFileItemWriter" scope="step">
+		<description>账单汇总文件 </description>
+		<property name="fileDetailClass" value="com.sunline.ppy.dictionary.exchange.StmtInterfaceItem"/>
+		<property name="resource" ref="resS650002Stmt"/>
+	</bean>
+	
+	<!-- <bean id="w6101StmtMsg" class="com.sunline.ark.batch.YakPartitionFileItemWriter" scope="step">
+		<description>账单提醒短信 </description>
+		<property name="fileDetailClass" value="com.sunline.smsd.service.sdk.StmtMsgInterfaceItem"/>
+		<property name="resource" ref="resS650003StmtMsg"/>
+	</bean> -->
+	
+	<bean id="w6101" class="com.sunline.ark.batch.PropertyDelegateWriter" scope="step">
+		<property name="writers">
+			<map>
+				<entry key="stmttxnInterfaceItems" value-ref="w6101StmtTxn"/>
+				<entry key="stmtInterfaceItems" value-ref="w6101Stmt"/>
+<!-- 				<entry key="stmtMsgInterfaceItems" value-ref="w6101StmtMsg"/> -->
+			</map>
+		</property>
+	</bean>
+	
+	<bean id="t6101FileMerger" class="com.sunline.ark.batch.FileMergerTasklet">
+		<property name="taskExecutor" ref="asyncTaskExecutor"/>
+		<property name="pollInterval" value="#{env['pollInterval']?:2000}" />
+		<property name="resources" >
+			<list>
+				<ref bean="resS650001Stmttxn" />
+				<ref bean="resS650002Stmt" />
+<!-- 				<ref bean="resS650003StmtMsg"/> -->
+			</list>
+		</property>
+	</bean>
+	
+	<!-- <bean id="e6101" class="com.sunline.fps.service.sdk.batch.DbFileExporter" scope="step">
+	    <property name="instanceName" value="#{env.instanceName}" />
+	    <property name="systemType" value="CCS" />
+		<property name="filenames">
+			<list>
+				<value>S6500StmtMsg</value>
+				<value>S6500Stmt</value>
+				<value>S6500StmtTxn</value>
+			</list>
+		</property>
+	</bean> -->
+</beans>

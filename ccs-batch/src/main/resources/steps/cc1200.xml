@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+
+	<bean id="r1201" class="com.sunline.ark.batch.VariableFileItemReader" scope="step">
+		<description>客服费通知文件</description>
+		<property name="detailClass" value="com.sunline.ppy.dictionary.exchange.CustServFeeNoticeInterfaceItem"/>
+		<property name="resource" ref="resS0300CssFee"/>
+	</bean>
+	
+	<bean id="p1201" class="org.springframework.batch.item.support.CompositeItemProcessor" scope="step">
+		<property name="delegates">
+			<list>
+				<bean class="com.sunline.ark.batch.SimpleExtractorProcessor" scope="step"/>
+				<bean class="com.sunline.ccs.batch.cc1200.P1201LoadCssFee" scope="step"/>
+			</list>
+		</property>
+	</bean>
+	
+	<bean id="w1201" class="com.sunline.ark.batch.NullItemWriter" scope="step"/>
+	
+	<bean id="r1211" class="com.sunline.ccs.batch.cc1200.R1211CssFeeImp" scope="step"/>
+
+	<bean id="p1211" class="com.sunline.ccs.batch.cc1200.P1211CssFeeImp" scope="step"/>
+	
+	<!-- <bean id="w1211" class="com.sunline.acm.service.sdk.BatchFileWriter" scope="step">
+		<description>客服客户费用报表文件</description>
+		<property name="fileDetailClass" value="com.sunline.ppy.dictionary.report.ccs.CssFeeRptItem"/>
+		<property name="filename" value="S0500CssFeeRpt"/>
+	</bean> -->
+	<bean id="w1211" class="com.sunline.ark.batch.YakFileItemWriter" scope="step">
+		<description>客服客户费用报表文件</description>
+		<property name="resource" ref="resS0500CssFeeRpt"/>
+		<property name="fileDetailClass" value="com.sunline.ppy.dictionary.report.ccs.CssFeeRptItem"/>
+	</bean>
+	<!-- <bean id="e1211" class="com.sunline.fps.service.sdk.batch.DbFileExporter" scope="step">
+	    <property name="instanceName" value="#{env.instanceName}" />
+	    <property name="systemType" value="CCS" />
+	    <property name="filenames">
+			<list>
+				<value>S0500CssFeeRpt</value>
+			</list>
+		</property>
+	</bean> -->
+</beans>

@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+
+<!-- 不使用FTS机制，测试文件可以生成在本地目录 -->
+	<bean id="r1331" class="com.sunline.ark.batch.VariableFileItemReader" scope="step">
+		<property name="detailClass" value="com.sunline.ppy.dictionary.exchange.MSLoanRepaymentInterfaceItem"/>
+		<property name="resource" ref="S0605MSLoanRepayment"/>
+	</bean>
+	<bean id="p1331" class="com.sunline.ccs.batch.cc1300.P1331LoadMSLoanRepay" scope="step"/>
+	<bean id="w1331" class="com.sunline.ark.batch.NullItemWriter" />
+
+
+	
+</beans>

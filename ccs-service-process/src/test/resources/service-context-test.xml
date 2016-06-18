@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<beans default-lazy-init="false"
+	xmlns:p="http://www.springframework.org/schema/p"
+	xmlns="http://www.springframework.org/schema/beans"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:util="http://www.springframework.org/schema/util"
+	xmlns:jee="http://www.springframework.org/schema/jee"
+	xmlns:jms="http://www.springframework.org/schema/jms"
+	xsi:schemaLocation="http://www.springframework.org/schema/jee http://www.springframework.org/schema/jee/spring-jee-3.1.xsd
+		http://www.springframework.org/schema/jms http://www.springframework.org/schema/jms/spring-jms-3.1.xsd
+		http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.1.xsd
+		http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util-3.1.xsd
+		http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-3.1.xsd">
+
+	<!-- 占位符 -->
+	<bean id="env" class="com.sunline.ark.support.EnvironmentFactoryBean">
+		<property name="locations" value="#{systemProperties['env.files'] ?: 'classpath:/dev/*.properties'}"/>
+	</bean>
+
+	<!-- 数据库访问相关配置 -->
+	<import resource="jpa-context.xml"/>
+	
+	<!-- RPC相关 -->
+	<import resource="rpc-context.xml"/>
+	<!-- 缓存相关 -->
+	<import resource="cache-context.xml"/>
+
+	<!-- 所有业务组件 -->
+	<context:component-scan base-package="com.sunline.ccs.service"/>
+	
+	<!-- 加载OTB的类 -->
+	<context:component-scan base-package="com.sunline.ccs.otb"/>
+	
+	<!-- 加载facility的类 -->
+	<context:component-scan base-package="com.sunline.ccs.facility"/>
+	<util:map id="authCodeMap" key-type="java.lang.String" value-type="java.lang.String">
+		<entry key="00" value="承兑或交易成功"/>
+		<entry key="01" value="查发卡方"/>
+		<entry key="03" value="无效商户"/>
+		<entry key="04" value="没收卡"/>
+		<entry key="05" value="身份认证失败"/>
+		<entry key="10" value="部分金额批准"/>
+		<entry key="11" value="重要人物批准（VIP）"/>
+		<entry key="12" value="无效的关联交易"/>
+		<entry key="13" value="无效金额"/>
+		<entry key="14" value="无效卡号（无此账号）"/>
+		<entry key="15" value="无此发卡方"/>
+		<entry key="16" value="批准更新第三磁道"/>
+		<entry key="21" value="卡未初始化"/>
+		<entry key="22" value="故障怀疑，关联交易错误"/>
+		<entry key="25" value="找不到原始交易"/>
+		<entry key="30" value="报文格式错误"/>
+		<entry key="34" value="有作弊嫌疑"/>
+		<entry key="38" value="超过允许的PIN试输入"/>
+		<entry key="40" value="请求的功能尚不支持"/>
+		<entry key="41" value="挂失卡"/>
+		<entry key="43" value="被窃卡"/>
+		<entry key="51" value="资金不足"/>
+		<entry key="54" value="过期的卡"/>
+		<entry key="55" value="不正确的PIN"/>
+		<entry key="57" value="不允许持卡人进行的交易"/>
+		<entry key="58" value="不允许终端进行的交易"/>
+		<entry key="59" value="有作弊嫌疑"/>
+		<entry key="61" value="超出金额限制"/>
+		<entry key="62" value="受限制的卡"/>
+		<entry key="64" value="原始金额错误"/>
+		<entry key="65" value="超出取款/消费次数限制"/>
+		<entry key="68" value="发卡行响应超时"/>
+		<entry key="75" value="允许的输入PIN次数超限"/>
+		<entry key="90" value="正在日终处理（）"/>
+		<entry key="91" value="发卡方不能操作"/>
+		<entry key="92" value="金融机构或中间网络设施找不到或无法达到"/>
+		<entry key="94" value="重复交易"/>
+		<entry key="96" value="银联处理中心系统异常、失效"/>
+		<entry key="97" value="ATM/POS终端号找不到"/>
+		<entry key="98" value="银联处理中心收不到发卡方应答"/>
+		<entry key="99" value="PIN 格式错"/>
+		<entry key="A0" value="MAC鉴别失败"/>
+		<entry key="A1" value="转账货币不一致"/>
+		<entry key="A2" value="有缺陷的成功"/>
+		<entry key="A3" value="资金到账行无此账户"/>
+		<entry key="A4" value="有缺陷的成功"/>
+		<entry key="A5" value="有缺陷的成功"/>
+		<entry key="A6" value="有缺陷的成功"/>
+		<entry key="A7" value="安全处理失败"/>
+		<entry key="B1" value="无欠费（收据未打）"/>
+		<entry key="C1" value="受理方状态非法"/>
+		<entry key="D1" value="机构代码错误"/>
+		<entry key="D2" value="日期错误"/>
+		<entry key="D3" value="无效的文件类型"/>
+		<entry key="D4" value="已经处理过的文件"/>
+		<entry key="D5" value="无此文件"/>
+		<entry key="D6" value="接收者不支持"/>
+		<entry key="D7" value="文件锁定"/>
+		<entry key="D8" value="未成功"/>
+		<entry key="D9" value="文件长度不符"/>
+		<entry key="DA" value="文件解压缩错"/>
+		<entry key="DB" value="文件名称错"/>
+		<entry key="DC" value="无法接收文件"/>
+		<entry key="F1" value="文件记录格式错误"/>
+		<entry key="F2" value="文件记录重复"/>
+		<entry key="F3" value="文件记录不存在"/>
+		<entry key="F4" value="文件记录错误"/>
+		<entry key="F5" value="文件批量转联机未完成"/>
+		<entry key="N1" value="未登折帐目已超限，交易不成功"/>
+	</util:map>
+	
+	<bean id="NON_ACTIVE" class="com.sunline.ccs.service.nfcontrol.NonActiveStateQuery"/>
+	<bean id="NON_SUPP_CARD" class="com.sunline.ccs.service.nfcontrol.NonSuppCardQuery"/>
+	<bean id="BEYOND_EXPIRE_DATE" class="com.sunline.ccs.service.nfcontrol.NonBeyondExpireDateQuery"/>
+	<bean id="Q_PIN_LOCK" class="com.sunline.ccs.service.nfcontrol.NonQPinLockQuery"/>
+	<bean id="P_PIN_LOCK" class="com.sunline.ccs.service.nfcontrol.NonPPinLockQuery"/>
+	<bean id="BlockField" class="com.sunline.ccs.service.nfcontrol.BlockFieldStateQuery"/>
+	<bean id="NonHaveQPin" class="com.sunline.ccs.service.nfcontrol.NonHaveQPinQuery"/>
+	<bean id="NonHavePPin" class="com.sunline.ccs.service.nfcontrol.NonHavePPinQuery"/>
+	
+</beans>

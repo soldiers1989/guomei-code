@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<beans default-lazy-init="false" xmlns:p="http://www.springframework.org/schema/p" xmlns="http://www.springframework.org/schema/beans"
+	xmlns:context="http://www.springframework.org/schema/context" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.1.xsd
+		http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-3.1.xsd">
+
+	<bean id="env" class="com.sunline.ark.support.EnvironmentFactoryBean">
+		<property name="locations" value="#{systemProperties['env.files'] ?: 'classpath:/dev/*.properties'}" />
+	</bean>
+
+	<context:component-scan base-package="com.sunline">
+		<!-- @Controller在servlet里初始化 -->
+		<context:exclude-filter type="annotation" expression="org.springframework.stereotype.Controller" />
+	</context:component-scan>
+
+	<!-- <bean class="com.sunline.acm.service.impl.GlobalManagementServiceImpl"/> -->
+	<!-- 使用AspectJ支持对new的注入 -->
+	<context:spring-configured />
+
+	<!-- 支持@Autowire等 -->
+	<context:annotation-config />
+
+	<bean id="mbeanServer" class="org.springframework.jmx.support.MBeanServerFactoryBean"
+		p:locateExistingServerIfPossible="true" />
+
+</beans>

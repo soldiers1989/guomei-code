@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+	
+	<!-- ftpClientTemplate与front-steps.xml共用即可 -->
+	<!-- 等待回盘文件 -->
+	<bean id="respFileWait" class="com.sunline.ccs.batch.common.FTPFileWaitingTask" >
+	    <property name="ftpClientOperations" ref="bizchannelFtpClient" />
+	    <property name="respRemotePath" value="#{env.respRemotePath}" />
+	    <property name="disburseRespRemotePath" value="#{env.disburseRespRemotePath}" />
+	    <property name="payAccountFileRespRmPath" value="#{env.payAccountFileRespRmPath}" />
+	    <property name="cutAccountFileRespRmPath" value="#{env.cutAccountFileRespRmPath}" />
+	</bean>
+	
+	<!-- 下载回盘文件 -->
+	<bean id="respFileDownload" class="com.sunline.ccs.batch.common.DownloadFileTasklet" >
+	    <property name="ftpClientOperations" ref="bizchannelFtpClient" />
+	    <property name="fileName" value="S0605MSLoanRepayment" />
+	    <property name="disburseFileName" value="S1341MSDisburse" />
+	    <property name="msxfTrans" value="msxfTrans" />
+	    <property name="msxfPayTranFlow" value="S1401MSxfPayTranFlow" />
+	    <property name="msxfWithholdTranFlow" value="S1401MSxfWithholdTranFlow" />
+	    <property name="acctBatchLimitAdj" value="AcctBatchLimitAdj" />
+	</bean>
+	
+	<!-- 商户平台ftp -->
+	<bean id="respMerchantFileWait" class="com.sunline.ccs.batch.common.FTPFileWaitingTask" >
+	    <property name="ftpClientOperations" ref="merchantFtpClient" />
+	    <property name="merchantFileRespRmPath" value="#{env.merchantFileRespRmPath}" />
+	</bean>
+	<bean id="respMerchantFileDownload" class="com.sunline.ccs.batch.common.DownloadFileTasklet">
+		<property name="ftpClientOperations" ref="merchantFtpClient"/>
+		<!-- 商户平台对账流水 -->
+	    <property name="msxfMerchantTranFlow" value="S1406MsxfMerchantTranFlow" />
+	</bean>
+</beans>

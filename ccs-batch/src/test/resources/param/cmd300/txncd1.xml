@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<com.sunline.ccs.param.def.TxnCd>
+	<txnCd>1111</txnCd>
+	<logicMod>L01</logicMod>
+</com.sunline.ccs.param.def.TxnCd>

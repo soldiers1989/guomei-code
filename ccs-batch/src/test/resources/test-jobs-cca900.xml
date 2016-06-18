@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<beans default-lazy-init="false"
+	xmlns:p="http://www.springframework.org/schema/p"
+	xmlns="http://www.springframework.org/schema/beans"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:util="http://www.springframework.org/schema/util"
+	xmlns:jee="http://www.springframework.org/schema/jee"
+	xmlns:jms="http://www.springframework.org/schema/jms"
+	xmlns:batch="http://www.springframework.org/schema/batch"
+	xmlns:task="http://www.springframework.org/schema/task"
+	xsi:schemaLocation="http://www.springframework.org/schema/jee http://www.springframework.org/schema/jee/spring-jee-3.1.xsd
+		http://www.springframework.org/schema/jms http://www.springframework.org/schema/jms/spring-jms-3.1.xsd
+		http://www.springframework.org/schema/task http://www.springframework.org/schema/task/spring-task-3.2.xsd
+		http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.1.xsd
+		http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util-3.1.xsd
+		http://www.springframework.org/schema/batch http://www.springframework.org/schema/batch/spring-batch.xsd
+		http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-3.1.xsd">
+
+
+	<!-- 导入步骤定义 -->
+	<import resource="test-steps-cca900.xml"/>
+	<!-- <import resource="test-steps-cca-general.xml"/> -->
+
+	<!-- 批量步骤模版，目前用于定义一组listener -->
+	<batch:step id="stepTemplate" abstract="true">
+		<batch:listeners>
+			<batch:listener>
+				<bean class="com.sunline.ark.batch.DebugSupportListener"/>
+			</batch:listener>
+		</batch:listeners>
+	</batch:step>
+	<!-- 用于支持并发批量的线程池 -->
+	<task:executor id="asyncTaskExecutor" pool-size="#{env['batchTaskPoolSize'] ?: 16}"/>
+	<batch:job id="ccsCca900Job">
+		<!-- 批量扣款回盘处理-扣款失败短信 -->
+		<batch:step parent="stepTemplate" id="cc1331" next="cc1501">
+			<batch:tasklet>
+				<batch:chunk reader="r1331" processor="p1331" writer="w1331"  commit-interval="#{env['commitInterval'] ?: 100}" />
+			</batch:tasklet> 
+		</batch:step>
+		
+		<!--  批量调额  -->
+        <batch:step id="cc1501" parent="stepTemplate" next="cc1502">
+			  <batch:tasklet>
+	        	<batch:chunk reader="r1501" processor="p1501" commit-interval="#{env['commitInterval'] ?: 100}" />
+	        </batch:tasklet>
+        </batch:step>
+        
+		<!-- 调额报表 -->
+		<batch:step parent="stepTemplate"  id="cc1502" next="cca301MSLoanMsg">
+			  <batch:tasklet>
+	        	<batch:chunk reader="r1502" processor="p1502" writer="w1502"  commit-interval="#{env['commitInterval'] ?: 100}" />
+	        </batch:tasklet>
+        </batch:step>
+        
+        <!-- 还款提醒短信，生成短信文件,发送给通知平台 -->
+       	 <batch:step parent="stepTemplate" id="cca301MSLoanMsg" next="cca302WhiteListMsg">
+			<batch:description>马上贷还款提醒短信文件</batch:description>
+			<batch:tasklet>
+				<batch:chunk reader="ra301" processor="pa301" writer="wa301"  commit-interval="#{env['commitInterval'] ?: 100}" />
+			</batch:tasklet>
+		</batch:step>
+		
+		<batch:step parent="stepTemplate" id="cca302WhiteListMsg" next="cca303LoanRpt">
+			<batch:description>白名单还款提醒短信文件</batch:description>
+			<batch:tasklet>
+				<batch:chunk reader="ra302" processor="pa302" writer="wa302"  commit-interval="#{env['commitInterval'] ?: 100}" />
+			</batch:tasklet>
+		</batch:step>
+		
+		<batch:step id="cca303LoanRpt" next="cca910MergeSmsFile">
+			<batch:description>提前还款提前短信文件</batch:description>
+			<batch:tasklet>
+				<batch:chunk reader="ra303" processor="pa303" writer="wa303"  commit-interval="#{env['commitInterval'] ?: 100}" />
+			</batch:tasklet>
+		</batch:step>
+        
+        <!-- 合并短信文件 只上传一个汇总文件到ftp,批量短信文件接口增加四个字段   by lizz 20151221 -->
+       <batch:step parent="stepTemplate"  id="cca910MergeSmsFile" next="cca920SendBatchSmsTask">
+        	<batch:tasklet ref="mergeSmsFile"/>
+        </batch:step>
+         
+		<!-- 通知短信平台 -->
+       <batch:step parent="stepTemplate"  id="cca920SendBatchSmsTask" >
+        	<batch:tasklet ref="sendBatchSmsTask"/>
+        </batch:step>
+        
+	</batch:job>
+</beans>

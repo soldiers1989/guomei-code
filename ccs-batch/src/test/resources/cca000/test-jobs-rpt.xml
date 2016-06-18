@@ -1,0 +1,359 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<beans default-lazy-init="false"
+	xmlns:p="http://www.springframework.org/schema/p"
+	xmlns="http://www.springframework.org/schema/beans"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:util="http://www.springframework.org/schema/util"
+	xmlns:jee="http://www.springframework.org/schema/jee"
+	xmlns:jms="http://www.springframework.org/schema/jms"
+	xmlns:batch="http://www.springframework.org/schema/batch"
+	xmlns:task="http://www.springframework.org/schema/task"
+	xsi:schemaLocation="http://www.springframework.org/schema/jee http://www.springframework.org/schema/jee/spring-jee-3.1.xsd
+		http://www.springframework.org/schema/jms http://www.springframework.org/schema/jms/spring-jms-3.1.xsd
+		http://www.springframework.org/schema/task http://www.springframework.org/schema/task/spring-task-3.2.xsd
+		http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.1.xsd
+		http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util-3.1.xsd
+		http://www.springframework.org/schema/batch http://www.springframework.org/schema/batch/spring-batch.xsd
+		http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-3.1.xsd">
+	
+	
+	<!-- 导入步骤定义 -->
+	<import resource="test-steps-cca000.xml"/>
+	<import resource="test-steps-cca200.xml"/>
+	<import resource="test-steps-cca-general.xml"/>
+	
+
+	<!-- 用于支持并发批量的线程池 -->
+<!-- 	<task:executorid="asyncTaskExecutor" pool-size="#{env['batchTaskPoolSize'] ?: 32}"/> -->
+	
+	<batch:job id="RptTestJob" >
+	
+		<batch:listeners>
+			<batch:listener ref="acmBatchStatusListener" />
+			<!-- JobExecutionListener -->
+			<batch:listener>
+				<bean class="com.sunline.ccs.batch.rpt.common.JobExecuteConfListener" />
+			</batch:listener>
+		</batch:listeners>
+		<batch:validator>
+			<bean class="com.sunline.acm.service.sdk.BatchDateJobParametersValidator"/>
+		</batch:validator>
+		
+		<!-- 送阳光文件 放款/贷款明细 -->
+		<batch:step  id="cca001YGLoanDetail" next="cca002YGRpyPlan">
+			<batch:partition partitioner="ra001">
+				<batch:handler grid-size="#{env['GridSize']?:16}" task-executor="asyncTaskExecutor"/>
+				<batch:step>
+					<batch:tasklet>
+						<batch:chunk reader="ra001" processor="pa001" writer="wa001"  commit-interval="#{env['commitInterval'] ?: 100}" />
+				 	</batch:tasklet>
+				</batch:step>
+			</batch:partition>
+		</batch:step>
+	
+		<!-- 送阳光文件 贷款期供 -->
+		<batch:step  id="cca002YGRpyPlan" next="cca003YGRpyDetail">
+			<batch:partition partitioner="ra002">
+				<batch:handler grid-size="#{env['GridSize']?:16}" task-executor="asyncTaskExecutor"/>
+				<batch:step>
+					<batch:tasklet>
+						<batch:chunk reader="ra002" writer="wa002"  commit-interval="#{env['commitInterval'] ?: 100}" />
+				 	</batch:tasklet>
+				</batch:step>
+			</batch:partition>
+		</batch:step>
+	
+		<!-- 送阳光文件 贷款还款信息 -->
+		<batch:step  id="cca003YGRpyDetail" next="cca004YGInsuredAmtStatus">
+			<batch:partition partitioner="ra003">
+				<batch:handler grid-size="#{env['GridSize']?:16}" task-executor="asyncTaskExecutor"/>
+				<batch:step>
+					<batch:tasklet>
+						<batch:chunk reader="ra003" processor="pa003" writer="wa003"  commit-interval="#{env['commitInterval'] ?: 100}" />
+				 	</batch:tasklet>
+				</batch:step>
+			</batch:partition>
+		</batch:step>
+	
+		<!-- 送阳光文件 保费期供 -->
+		<batch:step  id="cca004YGInsuredAmtStatus" next="cca005YGInsuredAmtRpyInfo">
+			<batch:partition partitioner="ra004">
+				<batch:handler grid-size="#{env['GridSize']?:16}" task-executor="asyncTaskExecutor"/>
+				<batch:step>
+					<batch:tasklet>
+						<batch:chunk reader="ra004" writer="wa004"  commit-interval="#{env['commitInterval'] ?: 100}" />
+				 	</batch:tasklet>
+				</batch:step>
+			</batch:partition>
+		</batch:step>
+	
+		<!-- 送阳光文件 保费还款 -->
+		<batch:step  id="cca005YGInsuredAmtRpyInfo" next="cca006YGClaimInfo">
+			<batch:partition partitioner="ra005">
+				<batch:handler grid-size="#{env['GridSize']?:16}" task-executor="asyncTaskExecutor"/>
+				<batch:step>
+					<batch:tasklet>
+						<batch:chunk reader="ra005" processor="pa005" writer="wa005"  commit-interval="#{env['commitInterval'] ?: 100}" />
+				 	</batch:tasklet>
+				</batch:step>
+			</batch:partition>
+		</batch:step>
+	
+		<!-- 送阳光文件 预理赔 -->
+		<batch:step  id="cca006YGClaimInfo" next="cca007YGConfirmClaimInfo">
+			<batch:partition partitioner="ra006" >
+				<batch:handler grid-size="#{env['GridSize']?:16}" task-executor="asyncTaskExecutor"/>
+				<batch:step>
+					<batch:tasklet>
+						<batch:chunk reader="ra006" processor="pa006" writer="wa006"  commit-interval="#{env['commitInterval'] ?: 100}" />
+				 	</batch:tasklet>
+				</batch:step>
+			</batch:partition>
+		</batch:step>
+	
+		<!-- 送阳光文件 理赔处理结果 -->
+		<batch:step  id="cca007YGConfirmClaimInfo" next="cca008YGPenalInfo">
+			<batch:partition partitioner="ra007">
+				<batch:handler grid-size="#{env['GridSize']?:16}" task-executor="asyncTaskExecutor"/>
+				<batch:step>
+					<batch:tasklet>
+						<batch:chunk reader="ra007" writer="wa007"  commit-interval="#{env['commitInterval'] ?: 100}" />
+				 	</batch:tasklet>
+				</batch:step>
+			</batch:partition>
+		</batch:step>
+	
+		<!-- 送阳光文件 提前还款时所收违约金信息 -->
+		<batch:step  id="cca008YGPenalInfo" next="cca009YGStatInfo">
+			<batch:partition partitioner="ra008">
+				<batch:handler grid-size="#{env['GridSize']?:16}" task-executor="asyncTaskExecutor"/>
+				<batch:step>
+					<batch:tasklet>
+						<batch:chunk reader="ra008" writer="wa008"  commit-interval="#{env['commitInterval'] ?: 100}" />
+				 	</batch:tasklet>
+				</batch:step>
+			</batch:partition>
+		</batch:step>
+	
+		<!-- 送阳光文件 对账文件 -->
+		<batch:step  id="cca009YGStatInfo" next="ma000YGFileMerge">
+			<batch:tasklet>
+				<batch:chunk reader="ra009" processor="pa009" writer="wa009"  commit-interval="#{env['commitInterval'] ?: 100}" />
+		 	</batch:tasklet>
+		</batch:step>
+		
+		<batch:step id="ma000YGFileMerge" next="cca291SendYGFile">
+			<batch:tasklet ref="ma000" />
+		</batch:step>
+		
+		<!-- 发送文件给阳光 -->
+       	<batch:step  id="cca291SendYGFile" next="cca201LoanRpt">
+        	<batch:tasklet ref="oa291"/>
+        </batch:step>
+        
+		<batch:step id="cca201LoanRpt" next="cca202LoanBalanceRpt">
+			<batch:description>放款合同报表文件</batch:description>
+			<batch:partition partitioner="ra201">
+				<batch:handler grid-size="#{env['GridSize']?:16}" task-executor="asyncTaskExecutor"/>
+				<batch:step>
+					<batch:tasklet>
+						<batch:chunk reader="ra201" writer="wa201"  commit-interval="#{env['commitInterval'] ?: 100}" />
+					</batch:tasklet>
+				</batch:step>
+			</batch:partition>
+		</batch:step>
+		
+		<!-- 这个步骤的writer不支持分片 -->
+		<batch:step id="cca202LoanBalanceRpt" next="cca203LoanRecoveryRpt">
+			<batch:description>贷款余额报表文件</batch:description>
+			<batch:partition partitioner="ra202">
+				<batch:handler grid-size="#{env['GridSize'] ?: 16}" task-executor="asyncTaskExecutor"/>
+				<batch:step >
+					<batch:tasklet>
+						<batch:chunk reader="ra202" processor="pa202" writer="wa202"  commit-interval="#{env['commitInterval'] ?: 100}" />
+					</batch:tasklet>
+				</batch:step>
+				</batch:partition>
+		</batch:step>
+		
+		<batch:step id="cca203LoanRecoveryRpt" next="cca204LoanSettlePayRpt">
+			<batch:description>代位追偿报表文件</batch:description>
+			<batch:partition partitioner="ra203">
+				<batch:handler grid-size="#{env['GridSize']?:16}" task-executor="asyncTaskExecutor"/>
+				<batch:step>
+					<batch:tasklet>
+						<batch:chunk reader="ra203" writer="wa203"  commit-interval="#{env['commitInterval'] ?: 100}" />
+					</batch:tasklet>
+				</batch:step>
+			</batch:partition>
+		</batch:step>
+		<batch:step id="cca204LoanSettlePayRpt" next="cca205LoanSettleConfirmRpt">
+			<batch:description>结算支付(保费、提前还款违约金分成)报表文件</batch:description>
+			<batch:partition partitioner="ra204">
+				<batch:handler grid-size="#{env['GridSize']?:16}" task-executor="asyncTaskExecutor"/>
+				<batch:step>
+					<batch:tasklet>
+						<batch:chunk reader="ra204" writer="wa204"  commit-interval="#{env['commitInterval'] ?: 100}" />
+					</batch:tasklet>
+				</batch:step>
+			</batch:partition>
+		</batch:step>
+		<batch:step id="cca205LoanSettleConfirmRpt" next="cca206LoanRepayRpt">
+			<batch:description>理赔结果报表文件</batch:description>
+			<batch:partition partitioner="ra205">
+				<batch:handler grid-size="#{env['GridSize']?:16}" task-executor="asyncTaskExecutor"/>
+				<batch:step>
+					<batch:tasklet>
+						<batch:chunk reader="ra205" writer="wa205"  commit-interval="#{env['commitInterval'] ?: 100}" />
+					</batch:tasklet>
+				</batch:step>
+			</batch:partition>
+		</batch:step>
+		<batch:step id="cca206LoanRepayRpt" next="cca207LoanRecoveryPayRpt">
+			<batch:description>还款结果查询报表文件</batch:description>
+			<batch:partition partitioner="ra206">
+				<batch:handler grid-size="#{env['GridSize']?:16}" task-executor="asyncTaskExecutor"/>
+				<batch:step>
+					<batch:tasklet>
+						<batch:chunk reader="ra206" writer="wa206"  commit-interval="#{env['commitInterval'] ?: 100}" />
+					</batch:tasklet>
+				</batch:step>
+			</batch:partition>
+		</batch:step>
+		<batch:step id="cca207LoanRecoveryPayRpt"  next="cca211MsLoanRpt">
+			<batch:description>还款结果查询报表文件</batch:description>
+			<batch:partition partitioner="ra207">
+				<batch:handler grid-size="#{env['GridSize']?:16}" task-executor="asyncTaskExecutor"/>
+				<batch:step>
+					<batch:tasklet>
+						<batch:chunk reader="ra207" writer="wa207"  commit-interval="#{env['commitInterval'] ?: 100}" />
+					</batch:tasklet>
+				</batch:step>
+			</batch:partition>
+		</batch:step>
+		
+		<batch:step  id="cca211MsLoanRpt" next="cca212MsLoanRepayRpt">
+			<batch:description>马上贷放款结果查询报表</batch:description>
+			<batch:partition partitioner="ra211">
+				<batch:handler grid-size="#{env['GridSize']?:16}" task-executor="asyncTaskExecutor"/>
+				<batch:step>
+					<batch:tasklet>
+						<batch:chunk reader="ra211" writer="wa211"  commit-interval="#{env['commitInterval'] ?: 100}" />
+					</batch:tasklet>
+				</batch:step>
+			</batch:partition>
+		</batch:step>
+		<batch:step  id="cca212MsLoanRepayRpt" next="cca213MsLoanBalanceRpt">
+			<batch:description>马上贷还款结果查询报表</batch:description>
+			<batch:partition partitioner="ra212">
+				<batch:handler grid-size="#{env['GridSize']?:16}" task-executor="asyncTaskExecutor"/>
+				<batch:step>
+					<batch:tasklet>
+						<batch:chunk reader="ra212" writer="wa212"  commit-interval="#{env['commitInterval'] ?: 100}" />
+					</batch:tasklet>
+				</batch:step>
+			</batch:partition>
+		</batch:step>
+		<batch:step  id="cca213MsLoanBalanceRpt" next="cca214MsLoanAppWithYgInsRpt">
+			<batch:description>马上贷贷款余额查询报表</batch:description>
+			<batch:partition partitioner="ra213">
+				<batch:handler grid-size="#{env['GridSize']?:16}" task-executor="asyncTaskExecutor"/>
+				<batch:step>
+					<batch:tasklet>
+						<batch:chunk reader="ra213" processor="pa213" writer="wa213"  commit-interval="#{env['commitInterval'] ?: 100}" />
+					</batch:tasklet>
+				</batch:step>
+			</batch:partition>
+		</batch:step>
+		<batch:step  id="cca214MsLoanAppWithYgInsRpt" next="cca215CooperationLoanBal">
+			<batch:description>寿险客户统计日报表</batch:description>
+			<batch:partition partitioner="ra214">
+				<batch:handler grid-size="#{env['GridSize']?:16}" task-executor="asyncTaskExecutor"/>
+				<batch:step>
+					<batch:tasklet>
+						<batch:chunk reader="ra214" writer="wa214"  commit-interval="#{env['commitInterval'] ?: 100}" />
+					</batch:tasklet>
+				</batch:step>
+			</batch:partition>
+		</batch:step>
+		<batch:step  id="cca215CooperationLoanBal" next="cca221MCATLoanRpt">
+			<batch:description>机构贷款余额</batch:description>
+			<batch:partition partitioner="ra215">
+				<batch:handler grid-size="#{env['GridSize']?:16}" task-executor="asyncTaskExecutor"/>
+				<batch:step>
+					<batch:tasklet>
+						<batch:chunk reader="ra215" writer="wa215"  commit-interval="#{env['commitInterval'] ?: 100}" />
+					</batch:tasklet>
+				</batch:step>
+			</batch:partition>
+		</batch:step>
+		<batch:step  id="cca221MCATLoanRpt" next="cca222MCATLoanRepayRpt">
+			<batch:description>随借随还放款结果查询报表</batch:description>
+			<batch:partition partitioner="ra221">
+				<batch:handler grid-size="#{env['GridSize']?:16}" task-executor="asyncTaskExecutor"/>
+				<batch:step>
+					<batch:tasklet>
+						<batch:chunk reader="ra221" writer="wa221"  commit-interval="#{env['commitInterval'] ?: 100}" />
+					</batch:tasklet>
+				</batch:step>
+			</batch:partition>
+		</batch:step>
+		<batch:step  id="cca222MCATLoanRepayRpt" next="cca223MCATLoanBalanceRpt">
+			<batch:description>随借随还还款结果查询报表</batch:description>
+			<batch:partition partitioner="ra222">
+				<batch:handler grid-size="#{env['GridSize']?:16}" task-executor="asyncTaskExecutor"/>
+				<batch:step>
+					<batch:tasklet>
+						<batch:chunk reader="ra222" writer="wa222"  commit-interval="#{env['commitInterval'] ?: 100}" />
+					</batch:tasklet>
+				</batch:step>
+			</batch:partition>
+		</batch:step>
+		<batch:step  id="cca223MCATLoanBalanceRpt" next="cca252MsOrderCutExceptionRpt" >
+			<batch:description>随借随还贷款余额查询报表</batch:description>
+			<batch:partition partitioner="ra223">
+				<batch:handler grid-size="#{env['GridSize']?:16}" task-executor="asyncTaskExecutor"/>
+				<batch:step>
+					<batch:tasklet>
+						<batch:chunk reader="ra223" processor="pa223" writer="wa223"  commit-interval="#{env['commitInterval'] ?: 100}" />
+					</batch:tasklet>
+				</batch:step>
+			</batch:partition>
+		</batch:step>
+		
+		<batch:step  id="cca252MsOrderCutExceptionRpt" next="cca253MsOrderPayExceptionRpt" >
+			<batch:description>收款异常报表</batch:description>
+			<batch:partition partitioner="ra252">
+				<batch:handler grid-size="#{env['GridSize']?:16}" task-executor="asyncTaskExecutor"/>
+				<batch:step>
+					<batch:tasklet>
+						<batch:chunk reader="ra252" writer="wa252"  commit-interval="#{env['commitInterval'] ?: 100}" />
+					</batch:tasklet>
+				</batch:step>
+			</batch:partition>
+		</batch:step>
+		
+		<batch:step  id="cca253MsOrderPayExceptionRpt" next="cca200RptFileMerge" >
+			<batch:description>付款异常报表</batch:description>
+			<batch:partition partitioner="ra253">
+				<batch:handler grid-size="#{env['GridSize']?:16}" task-executor="asyncTaskExecutor"/>
+				<batch:step>
+					<batch:tasklet>
+						<batch:chunk reader="ra253" writer="wa253"  commit-interval="#{env['commitInterval'] ?: 100}" />
+					</batch:tasklet>
+				</batch:step>
+			</batch:partition>
+		</batch:step>
+		
+		<batch:step id="cca200RptFileMerge" next="cca292SendMSRpt">
+			<batch:tasklet ref = "ma200" />
+		</batch:step>
+		
+        <!-- 发送报表文件 -->
+        <batch:step  id="cca292SendMSRpt" next="cca232YZFTransactionFlowFile">
+        	<batch:tasklet ref="oa292"/>
+        </batch:step>
+		
+	</batch:job>
+</beans>

@@ -1,0 +1,144 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+	
+	<!-- =======================================马上回盘处理及短信  start======================================= -->
+		<!-- 马上回盘 -->
+	<bean id="r1331" class="com.sunline.ark.batch.VariableFileItemReader" scope="step">
+		<description>贷款还款回盘文件</description>
+		<property name="lineSperator" value="\|" />
+		<property name="detailClass" value="com.sunline.ppy.dictionary.exchange.MSLoanRepaymentInterfaceItem"/>
+		<property name="resource" ref="resS0605MSLoanRepayment"/>
+		<!-- 		<property name="charset" value="GBK"/> -->
+	</bean>
+	<bean id="p1331" class="com.sunline.ccs.batch.cc1300.P1331LoadMSLoanRepay" scope="step"/>
+	<bean id="w1331" class="com.sunline.ark.batch.VariableFileItemWriter" scope="step" >
+		<property name="resource" ref="resA300RepaymentFailMsg" />
+		<property name="lineSeparator" value="\|" />
+		<property name="containLastSeparator" value="false" />
+		<property name="detailClass" value="com.sunline.ppy.dictionary.exchange.MSLoanMsgItem" />
+		<property name="extensionFileName" value="" />
+	</bean>
+	<!-- =======================================马上回盘处理及短信  end======================================= -->
+	
+	<!-- =======================================批量调额报表及短信  start======================================= -->
+	<!-- 批量调额 -->
+	<bean id="abstractReportWriter" abstract="true" class="com.sunline.ark.batch.VariableMSReportFileItemWriter" > 
+		<property name="lineSeparator" value="\|" />
+		<property name="extensionFileName" value=".txt" /> 
+		<property name="validateFileName" value=".txt.ctrl" />
+	</bean>
+	
+	<bean id="r1501" class="com.sunline.ark.batch.VariableFileItemReader"
+		scope="step">
+		<property name="lineSperator" value="\|" />
+		<property name="detailClass"
+			value="com.sunline.ppy.dictionary.exchange.AcctLmtAdjFile" />
+		<property name="resource" ref="resS1501LimitAdj" />
+	</bean>
+	<bean id="p1501" class="com.sunline.ccs.batch.cc1500.P1501AdjLimit"
+		scope="step" />
+		
+	<!-- 调额报表 -->
+	<bean id="r1502" class="com.sunline.ccs.batch.cc1500.R1502AcctCrlmtAdjRpt" scope="step"/>
+	
+	<bean id="p1502" class="com.sunline.ccs.batch.cc1500.P1502AcctCrlmtAdjRpt" scope="step"/>
+	
+	<bean id="w1502AcctCrlmtAdjSucessRpt" class="com.sunline.ark.batch.VariableFileItemWriter" scope="step">
+		<description>调额成功报表</description>
+		<property name="resource" ref="resS1502AcctCrlmtAdjSuccess"/>
+		<property name="lineSeparator" value="\|" />
+		<property name="containLastSeparator" value="false" />
+		<property name="detailClass" value="com.sunline.ppy.dictionary.report.ccs.AcctCrlmtAdjRptItem"/>
+		<property name="extensionFileName" value=".txt" />
+		<property name="validateFileName" value=".txt.ctrl" />
+	</bean>
+	
+	<bean id="w1502AcctCrlmtAdjFailRpt" class="com.sunline.ark.batch.VariableFileItemWriter" scope="step">
+		<description>调额失败报表</description>
+		<property name="resource" ref="resS1502AcctCrlmtAdjFail"/>
+		<property name="lineSeparator" value="\|" />
+		<property name="containLastSeparator" value="false" />
+		<property name="detailClass" value="com.sunline.ppy.dictionary.report.ccs.AcctCrlmtAdjRptItem"/>
+		<property name="extensionFileName" value=".txt" />
+		<property name="validateFileName" value=".txt.ctrl" />
+	</bean>
+	
+	<!-- 批量调额短信通知文件 -->
+	<bean id="w8502AcctCrlmtAdjMsg" class="com.sunline.ark.batch.VariableFileItemWriter" scope="step" >
+		<property name="resource" ref="resS8502AcctCrlmtAdjMsg" />
+		<property name="lineSeparator" value="\|" />
+		<property name="containLastSeparator" value="false" />
+		<property name="detailClass" value="com.sunline.ppy.dictionary.exchange.MSLoanMsgItem" />
+		<property name="extensionFileName" value="" />
+	</bean>
+	
+	<bean id="w1502" class="com.sunline.ark.batch.PropertyDelegateWriter" scope="step">
+		<property name="writers">
+			<map>
+				<entry key="acctCrlmtAdjSuccessRpt" value-ref="w1502AcctCrlmtAdjSucessRpt"/>
+				<entry key="acctCrlmtAdjFailRpt" value-ref="w1502AcctCrlmtAdjFailRpt"/>
+				<entry key="acctCrlmtAdjMsg" value-ref="w8502AcctCrlmtAdjMsg"/>
+			</map>
+		</property>
+	</bean>
+	<!-- =======================================批量调额报表及短信  end======================================= -->
+	
+	<!-- =======================================还款提现短信  start======================================= -->
+	<bean id="abstractMsgWriter2" abstract="true" class="com.sunline.ark.batch.VariableFileItemWriter" >
+		<property name="lineSeparator" value="\|" />
+		<property name="containLastSeparator" value="false" />
+		<property name="detailClass" value="com.sunline.ppy.dictionary.exchange.MSLoanMsgItem" />
+		<property name="extensionFileName" value="" />
+	</bean>
+	
+	<bean id="ra301" class="com.sunline.ccs.batch.cca300.RA301MSLoanRepayMsg" scope="step" />
+	<bean id="pa301" class="com.sunline.ccs.batch.cca300.PA301MSLoanRepayMsg" scope="step" />
+	<bean id="wa301" parent = "abstractMsgWriter2" scope="step">
+		<description>马上贷还款提醒短信文件</description>
+		<property name="resource" ref="resA301MSLoanRepayMsg"/>
+	</bean>	
+	
+	<bean id="ra302" class="com.sunline.ccs.batch.cca300.RA302WhiteListRepayMsg" scope="step" />
+	<bean id="pa302" class="com.sunline.ccs.batch.cca300.PA302WhiteListRepayMsg" scope="step"/>
+	<bean id="wa302" parent = "abstractMsgWriter2" scope="step">
+		<description>白名单还款提醒短信文件</description>
+		<property name="resource" ref="resA302WhiteListRepayMsg"/>
+	</bean>
+	
+	<bean id="ra303" class="com.sunline.ccs.batch.cca300.RA303PrepaymentRemainMsg" scope="step" />
+	<bean id="pa303" class="com.sunline.ccs.batch.cca300.PA303PrepaymentRemainMsg" scope="step"/>
+	<bean id="wa303" parent = "abstractMsgWriter2" scope="step">
+		<description>提前还款提醒短信文件</description>
+		<property name="detailClass" value="com.sunline.ppy.dictionary.exchange.MSLoanMsgItem"/>
+		<property name="resource" ref="resA303PrepaymentRemainMsg"/>
+	</bean>	
+	<!-- =======================================还款提现短信  end======================================= -->
+		
+	
+	
+	
+	
+	<!-- 批量完成，合并短信文件 -->	
+	<bean id="mergeSmsFile" class="com.sunline.ccs.batch.common.SimpleFileMergeTasklet" >
+		<property name="sources">
+			<list>
+				<ref bean="resA300RepaymentFailMsg" />
+				<ref bean="resA301MSLoanRepayMsg" />
+				<ref bean="resA302WhiteListRepayMsg" /> 
+				<ref bean="resS8502AcctCrlmtAdjMsg" />
+				<ref bean="resA303PrepaymentRemainMsg" />
+			</list>
+		</property>
+		<property name="target" ref="resCca900MSxfSmsFile" />
+		<property name="isEndOfNewLine" value="false" />
+		
+	</bean>
+	
+	<!-- 批量完成，通知短信平台 -->	
+	<bean id="sendBatchSmsTask" class="com.sunline.ccs.batch.cca900.SendBatchSmsTasklet">
+		<property name="fileName" value="MSxfSmsFile.txt" />
+	</bean>
+	
+</beans>

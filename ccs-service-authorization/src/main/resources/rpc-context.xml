@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:rabbit="http://www.springframework.org/schema/rabbit"
+	xsi:schemaLocation="http://www.springframework.org/schema/rabbit http://www.springframework.org/schema/rabbit/spring-rabbit-1.1.xsd
+		http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.1.xsd
+		http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-3.1.xsd">
+
+	<!-- 导入消息队列通用配置 -->
+	<import resource="classpath:/acm-sdk-mq-context.xml"/>
+
+	<!-- 导入BMP服务配置 -->
+	<import resource="classpath:/pcm-sdk-mq-context.xml"/>
+	
+	<!-- <import resource="classpath:/smsd-sdk-mq-context.xml"/> -->
+	
+	<!-- 介质管理 -->
+	<bean class="com.sunline.acm.service.sdk.ServiceProxyFactoryBean">
+		<property name="queueName" value="mms.rpc.medium"/>	
+		<property name="serviceInterface" value="com.sunline.ppy.api.MediumService"/>
+	</bean>
+	
+	<bean class="com.sunline.acm.service.sdk.ServiceProxyFactoryBean">
+		<property name="queueName" value="mms.rpc.cardservice"/>	
+		<property name="serviceInterface" value="com.sunline.ppy.api.MmCardService"/>
+	</bean>
+	
+	<!-- 反欺诈-->
+	
+	<bean class="com.sunline.acm.service.sdk.ServiceProxyFactoryBean">
+		<property name="queueName" value="rmns.rpc.trans"/>	
+		<property name="serviceInterface" value="com.sunline.ppy.api.RdsTransactionDetectService"/>
+	</bean>
+	 
+	<!-- 队列列表，没有就自动创建 -->
+	<rabbit:queue queue-arguments="amqpQueueArguments" id="authQueue" name="#{env.instanceName}.ccs.rpc.authorization"/>
+
+	<!-- 业务组件导出及容器 -->
+	<bean id="authService" class="com.sunline.acm.service.sdk.ServiceExporter">
+		<property name="service" ref="authServiceImpl"/>
+		<property name="serviceInterface" value="com.sunline.ppy.api.AuthorizationService"/>
+	</bean>
+	
+	<rabbit:listener-container requeue-rejected="false" concurrency="#{env['mqServiceConcurrency']?:1}">
+		<rabbit:listener queues="authQueue" ref="authService"/>
+	</rabbit:listener-container>
+	
+	<!-- 通知发送接口 -->
+	<bean id="msSmsNoticeSendService" class="com.sunline.acm.service.sdk.ServiceProxyFactoryBean">
+		<property name="queueName" value="nfs.rpc.smsclient" />
+		<property name="serviceInterface" value="com.sunline.ppy.api.MsSmsNoticeSendService" />
+	</bean>
+</beans>

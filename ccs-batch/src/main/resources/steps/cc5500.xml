@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+
+	<bean id="r5501" class="com.sunline.ark.batch.VariableFileItemReader" scope="step">
+		<description>到期换卡申请文件</description>
+		<property name="detailClass" value="com.sunline.ppy.dictionary.exchange.ExpiryChangeFileItem"/>
+		<property name="resource" ref="resS4500ExpiryRequest"/>
+	</bean>
+	
+	<bean id="p5501" class="com.sunline.ccs.batch.cc5500.P5501AutoRenewal" scope="step"/>
+	
+	<!-- <bean id="w5501Response" class="com.sunline.acm.service.sdk.BatchFileWriter" scope="step">
+		<description>到期换卡回盘文件</description>
+		<property name="fileDetailClass" value="com.sunline.ppy.dictionary.exchange.ExpiryChangeFileItem"/>
+		<property name="filename" value="S450001Response"/>
+	</bean>
+	<bean id="w5501Rpt" class="com.sunline.acm.service.sdk.BatchFileWriter" scope="step">
+		<description>到期换卡报表</description>
+		<property name="fileDetailClass" value="com.sunline.ppy.dictionary.report.ccs.RenewRptItem"/>
+		<property name="filename" value="S450002Rpt"/>
+	</bean>
+	<bean id="w5501RenewMsg" class="com.sunline.acm.service.sdk.BatchFileWriter" scope="step">
+		<description>到期换卡通知短信</description>
+		<property name="fileDetailClass" value="com.sunline.smsd.service.sdk.RenewMsgItem"/>
+		<property name="filename" value="S450003RenewMsg"/>
+	</bean> -->
+	
+	<bean id="w5501Response" class="com.sunline.ark.batch.YakFileItemWriter" scope="step">
+		<description>到期换卡回盘文件</description>
+		<property name="fileDetailClass" value="com.sunline.ppy.dictionary.exchange.ExpiryChangeFileItem"/>
+		<property name="resource" ref="resS450001Response"/>
+	</bean>
+	<bean id="w5501Rpt" class="com.sunline.ark.batch.YakFileItemWriter" scope="step">
+		<description>到期换卡报表</description>
+		<property name="fileDetailClass" value="com.sunline.ppy.dictionary.report.ccs.RenewRptItem"/>
+		<property name="resource" ref="resS450002Rpt"/>
+	</bean>
+	<bean id="w5501RenewMsg" class="com.sunline.ark.batch.YakFileItemWriter" scope="step">
+		<description>到期换卡通知短信</description>
+		<property name="fileDetailClass" value="com.sunline.smsd.service.sdk.RenewMsgItem"/>
+		<property name="resource" ref="resS450003Msg"/>
+	</bean>
+	<bean id="w5501" class="com.sunline.ark.batch.PropertyDelegateWriter" scope="step">
+		<property name="writers">
+			<map>
+				<entry key="expiryChangeFileItem" value-ref="w5501Response"/>
+				<entry key="renewRptItem" value-ref="w5501Rpt"/>
+				<entry key="renewMsgItem" value-ref="w5501RenewMsg"/>
+			</map>
+		</property>
+	</bean>
+	
+	<!-- <bean id="e5501" class="com.sunline.fps.service.sdk.batch.DbFileExporter" scope="step">
+	    <property name="instanceName" value="#{env.instanceName}" />
+	    <property name="systemType" value="CCS" />
+		<property name="filenames">
+			<list>
+				<value>S450001Response</value>
+				<value>S450002Rpt</value>
+				<value>S450003RenewMsg</value>
+			</list>
+		</property>
+	</bean> -->
+	
+	
+	<bean id="r5511" class="com.sunline.ccs.batch.cc5500.R5511ManualRenewal" scope="step"/>
+	<bean id="p5511" class="com.sunline.ccs.batch.cc5500.P5511ManualRenewal" scope="step"/>
+</beans>

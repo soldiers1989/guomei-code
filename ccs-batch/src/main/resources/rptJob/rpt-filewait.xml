@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+
+	<bean id="rptWait" class="com.sunline.acm.service.sdk.ResourceWaitingTask" scope="step">
+		<description>waitResourcesM,必须存在，waitResourcesO，非必须，如果不存在自动创建</description>
+	    <property name="waitResourcesM">
+			<list>
+				<ref bean="resSARptJobStartFile" />
+			</list>
+		</property>
+		<property name="waitResourcesO">
+			<list></list>
+		</property>
+	</bean>
+	
+	
+</beans>

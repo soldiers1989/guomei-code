@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+
+	<!-- 根据deletingList删除 -->
+	<bean id="r8301" class="com.sunline.ccs.batch.cc8300.R8301AuthMemoDel" scope="step"/>
+	
+	<bean id="p8301" class="com.sunline.ccs.batch.cc8300.P8301AuthMemoDel" scope="step"/>
+	
+	<!-- <bean id="w8301" class="com.sunline.acm.service.sdk.BatchFileWriter" scope="step">
+		<description>授权历史文件</description>
+		<property name="fileDetailClass" value="com.sunline.ccs.batch.cc8000.U8001AuthMemo" />
+		<property name="filename" value="S830001AuthDelUnmatchoList"/>
+	</bean> -->
+	<bean id="w8301" class="com.sunline.ark.batch.YakPartitionFileItemWriter" scope="step">
+		<description>账单交易明细文件</description>
+		<property name="fileDetailClass" value="com.sunline.ccs.batch.cc8000.U8001AuthMemo"/>
+		<property name="resource" ref="resS830001AuthDelUnmatchoList"/>
+	</bean>
+	
+	<bean id="t8301FileMerger" class="com.sunline.ark.batch.FileMergerTasklet">
+		<property name="taskExecutor" ref="asyncTaskExecutor"/>
+		<property name="pollInterval" value="#{env['pollInterval']?:2000}" />
+		<property name="resources" >
+			<list>
+				<ref bean="resS830001AuthDelUnmatchoList" />
+			</list>
+		</property>
+	</bean>
+	<!-- <bean id="e8301" class="com.sunline.fps.service.sdk.batch.DbFileExporter" scope="step">
+	    <property name="instanceName" value="#{env.instanceName}" />
+	    <property name="systemType" value="CCS" />
+	    <property name="filenames">
+			<list>
+				<value>S830001AuthDelUnmatchoList</value>
+			</list>
+		</property>
+	</bean> -->
+</beans>

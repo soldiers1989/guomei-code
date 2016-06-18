@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+
+	<bean id="r9001" class="com.sunline.ccs.batch.cc9000.R9001Rpt1104G17" scope="step"/>
+
+	<!-- <bean id="w9001" class="com.sunline.acm.service.sdk.BatchFileWriter" scope="step">
+		<description>1104报表G17</description>
+		<property name="fileDetailClass" value="com.sunline.ppy.dictionary.report.ccs.T9001To1104G17RptItem" />
+		<property name="filename" value="S900001To1104G17"/>
+	</bean> -->
+	<bean id="w9001" class="com.sunline.ark.batch.YakPartitionFileItemWriter" scope="step">
+		<property name="fileDetailClass" value="com.sunline.ppy.dictionary.report.ccs.T9001To1104G17RptItem" />
+		<property name="resource" ref="resS900001To1104G17" />
+	</bean>
+	
+	<bean id="t9001FileMerger" class="com.sunline.ark.batch.FileMergerTasklet">
+		<property name="taskExecutor" ref="asyncTaskExecutor"/>
+		<property name="pollInterval" value="#{env['pollInterval']?:2000}" />
+		<property name="resources" >
+			<list>
+				<ref bean="resS900001To1104G17" />
+			</list>
+		</property>
+	</bean>
+	
+<!-- 	<bean id="e9001" class="com.sunline.fps.service.sdk.batch.DbFileExporter" scope="step">
+	    <property name="instanceName" value="#{env.instanceName}" />
+	    <property name="systemType" value="CCS" />
+	    <property name="filenames">
+			<list>
+				<value>S900001To1104G17</value>
+			</list>
+		</property>
+	</bean> -->
+</beans>

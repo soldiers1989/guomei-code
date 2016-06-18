@@ -1,0 +1,167 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:rabbit="http://www.springframework.org/schema/rabbit"
+	xsi:schemaLocation="http://www.springframework.org/schema/rabbit http://www.springframework.org/schema/rabbit/spring-rabbit-1.1.xsd
+		http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.1.xsd
+		http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-3.1.xsd">
+
+	<!-- 导入消息队列通用配置 -->
+	<import resource="classpath:/acm-sdk-mq-context.xml"/>
+
+	<!-- 导入BMP服务配置 -->
+	<import resource="classpath:/pcm-sdk-mq-context.xml"/>
+	
+	<!-- <import resource="classpath:/smsd-sdk-mq-context.xml"/> -->
+	
+	<!-- 队列列表，没有就自动创建 -->
+	<rabbit:queue queue-arguments="amqpQueueArguments" id="customerQueue" name="#{env.instanceName}.ccs.rpc.customer"/>
+	<rabbit:queue queue-arguments="amqpQueueArguments" id="accountQueue" name="#{env.instanceName}.ccs.rpc.account"/>
+	<rabbit:queue queue-arguments="amqpQueueArguments" id="cardQueue" name="#{env.instanceName}.ccs.rpc.card"/>
+	<rabbit:queue queue-arguments="amqpQueueArguments" id="loanQueue" name="#{env.instanceName}.ccs.rpc.loan"/>
+	<rabbit:queue queue-arguments="amqpQueueArguments" id="pointsQueue" name="#{env.instanceName}.ccs.rpc.points"/>
+	<rabbit:queue queue-arguments="amqpQueueArguments" id="transactionQueue" name="#{env.instanceName}.ccs.rpc.transaction"/>
+	<!-- 新的非金融交易服务 -->
+	<rabbit:queue queue-arguments="amqpQueueArguments" id="nfQueryserQueue" name="#{env.instanceName}.ccs.rpc.queryservice"/>
+	<rabbit:queue queue-arguments="amqpQueueArguments" id="nfOperateserQueue" name="#{env.instanceName}.ccs.rpc.operateService"/>
+	<rabbit:queue queue-arguments="amqpQueueArguments" id="nfLoanQueue" name="#{env.instanceName}.ccs.rpc.loanService"/>
+	<rabbit:queue queue-arguments="amqpQueueArguments" id="nfPointQueue" name="#{env.instanceName}.ccs.rpc.pointsService"/>
+	<rabbit:queue queue-arguments="amqpQueueArguments" id="nfMicroCreditQueue" name="#{env.instanceName}.ccs.rpc.microCreditService"/>
+	<rabbit:queue queue-arguments="amqpQueueArguments" id="nfSunshineInsuranceQueue" name="#{env.instanceName}.ccs.rpc.sunshineInsuranceService"/>
+	<rabbit:queue queue-arguments="amqpQueueArguments" id="nfMsQueryQueue" name="#{env.instanceName}.ccs.rpc.msQueryService"/>
+	<rabbit:queue queue-arguments="amqpQueueArguments" id="nfMsLoanQueue" name="#{env.instanceName}.ccs.rpc.msLoanService"/>
+	
+
+	<!-- 业务组件导出及容器 -->
+	<bean id="customerService" class="com.sunline.acm.service.sdk.ServiceExporter">
+		<property name="service" ref="customerServiceImpl"/>
+		<property name="serviceInterface" value="com.sunline.ppy.api.CcCustomerService"/>
+	</bean>
+	
+	<bean id="accountService" class="com.sunline.acm.service.sdk.ServiceExporter">
+		<property name="service" ref="accountServiceImpl"/>
+		<property name="serviceInterface" value="com.sunline.ppy.api.CcAccountService"/>
+	</bean>
+	
+	<bean id="cardService" class="com.sunline.acm.service.sdk.ServiceExporter">
+		<property name="service" ref="cardServiceImpl"/>
+		<property name="serviceInterface" value="com.sunline.ppy.api.CcCardService"/>
+	</bean>
+	
+	<bean id="loanService" class="com.sunline.acm.service.sdk.ServiceExporter">
+		<property name="service" ref="loanServiceImpl"/>
+		<property name="serviceInterface" value="com.sunline.ppy.api.CcLoanService"/>
+	</bean>
+	
+	<bean id="pointsService" class="com.sunline.acm.service.sdk.ServiceExporter">
+		<property name="service" ref="pointServiceImpl"/>
+		<property name="serviceInterface" value="com.sunline.ppy.api.CcPointService"/>
+	</bean>
+	
+	<bean id="transactionService" class="com.sunline.acm.service.sdk.ServiceExporter">
+		<property name="service" ref="transactionServiceImpl"/>
+		<property name="serviceInterface" value="com.sunline.ppy.api.CcTransactionService"/>
+	</bean>
+	
+	<bean id="mmCardService" class="com.sunline.acm.service.sdk.ServiceProxyFactoryBean">
+		<property name="queueName" value="mms.rpc.cardservice"/>	
+		<property name="serviceInterface" value="com.sunline.ppy.api.MmCardService"/>
+	</bean>
+	
+	<bean id="mediumService" class="com.sunline.acm.service.sdk.ServiceProxyFactoryBean">
+		<property name="queueName" value="mms.rpc.medium"/>	
+		<property name="serviceInterface" value="com.sunline.ppy.api.MediumService"/>
+	</bean>	
+	
+	
+	<bean id="nfQueryService" class="com.sunline.acm.service.sdk.ServiceExporter">
+		<property name="service" ref="nfQueryServiceImpl"/>
+		<property name="serviceInterface" value="com.sunline.ccs.service.api.QueryService"/>
+	</bean>
+	<bean id="nfOperateService" class="com.sunline.acm.service.sdk.ServiceExporter">
+		<property name="service" ref="nfOperateServiceImpl"/>
+		<property name="serviceInterface" value="com.sunline.ccs.service.api.OperateService"/>
+	</bean>
+	
+	<bean id="nfLoanService" class="com.sunline.acm.service.sdk.ServiceExporter">
+		<property name="service" ref="nfLoanServiceImpl"/>
+		<property name="serviceInterface" value="com.sunline.ccs.service.api.LoanService"/>
+	</bean>
+	<bean id="nfPointService" class="com.sunline.acm.service.sdk.ServiceExporter">
+		<property name="service" ref="nfPointServiceImpl"/>
+		<property name="serviceInterface" value="com.sunline.ccs.service.api.PointService"/>
+	</bean>
+	<bean id="nfMicroCreditService" class="com.sunline.acm.service.sdk.ServiceExporter">
+		<property name="service" ref="nfMicroCreditServiceImpl"/>
+		<property name="serviceInterface" value="com.sunline.ccs.service.api.MicroCreditService"/>
+	</bean>
+	<!-- 马上-阳光保险贷 service add by lizz 20150810g -->
+	<bean id="nfSunshineInsuranceService" class="com.sunline.acm.service.sdk.ServiceExporter">
+		<property name="service" ref="sunshineInsuranceServiceImpl"/>
+		<property name="serviceInterface" value="com.sunline.ccs.service.api.SunshineInsuranceService"/>
+	</bean>
+	<!-- 马上-消费信贷查询 service add by zqx 20150810g-->
+	<bean id="nfMsQueryService" class="com.sunline.acm.service.sdk.ServiceExporter">
+		<property name="service" ref="msQueryServiceImpl"/>
+		<property name="serviceInterface" value="com.sunline.ccs.service.api.MsQueryService"/>
+	</bean>
+	<!-- 马上贷和白名单产品service add by ymk 20150930g -->
+	<bean id="nfMsLoanService" class="com.sunline.acm.service.sdk.ServiceExporter">
+		<property name="service" ref="msLoanServiceImpl"/>
+		<property name="serviceInterface" value="com.sunline.ccs.service.api.MsLoanService"/>
+	</bean>
+	
+	<bean id="authorizationService" class="com.sunline.acm.service.sdk.ServiceProxyFactoryBean">
+		<property name="queueName" value="ccs.rpc.authorization"/>	
+		<property name="serviceInterface" value="com.sunline.ppy.api.AuthorizationService"/>
+	</bean>
+	
+	<bean id="bankClientService" class="com.sunline.acm.service.sdk.ServiceProxyFactoryBean">
+		<property name="queueName" value="ffs.q.cash-loan"/>
+		<property name="serviceInterface" value="com.sunline.ppy.api.BankClientService"/>
+	</bean>
+	
+	<!-- 调用nfs-client -->
+	<bean id="bankService" class="com.sunline.acm.service.sdk.ServiceProxyFactoryBean">
+		<property name="queueName" value="nfs.rpc.client" />
+		<property name="serviceInterface" value="com.sunline.ppy.api.BankServiceForAps" />
+	</bean>
+	<!-- 调用卡号生成服务 -->
+	<bean id="cardnbrService" class="com.sunline.acm.service.sdk.ServiceProxyFactoryBean">
+		<property name="queueName" value="ccs.rpc.cardnbr" />
+		<property name="serviceInterface" value="com.sunline.ppy.api.CcCardNbrService" />
+	</bean>
+	
+	<!-- 调用nfs-client短信和通知发送接口 -->
+	<bean id="msSmsNoticeSendService" class="com.sunline.acm.service.sdk.ServiceProxyFactoryBean">
+		<property name="queueName" value="nfs.rpc.smsclient" />
+		<property name="serviceInterface" value="com.sunline.ppy.api.MsSmsNoticeSendService" />
+	</bean>
+	<!-- 催收服务 -->
+	<bean id="msCSNoticeSendService" class="com.sunline.acm.service.sdk.ServiceProxyFactoryBean">
+		<property name="queueName" value="nfs.rpc.csnclient" />
+		<property name="serviceInterface" value="com.sunline.ppy.api.MsCSNoticeSendService" />
+	</bean>
+	
+	
+	<rabbit:listener-container requeue-rejected="false" concurrency="#{env['mqServiceConcurrency']?:1}">
+		<rabbit:listener queues="customerQueue" ref="customerService"/>
+		<rabbit:listener queues="accountQueue" ref="accountService"/>
+		<rabbit:listener queues="cardQueue" ref="cardService"/>
+		<rabbit:listener queues="loanQueue" ref="loanService"/>
+		<rabbit:listener queues="pointsQueue" ref="pointsService"/>
+		<rabbit:listener queues="transactionQueue" ref="transactionService"/>		
+		<rabbit:listener queues="nfQueryserQueue" ref="nfQueryService"/>
+		<rabbit:listener queues="nfOperateserQueue" ref="nfOperateService"/>
+		<rabbit:listener queues="nfLoanQueue" ref="nfLoanService"/>
+		<rabbit:listener queues="nfPointQueue" ref="nfPointService"/>
+		<rabbit:listener queues="nfMicroCreditQueue" ref="nfMicroCreditService"/>
+		<rabbit:listener queues="nfSunshineInsuranceQueue" ref="nfSunshineInsuranceService"/>
+		<rabbit:listener queues="nfMsQueryQueue" ref="nfMsQueryService"/>
+		<rabbit:listener queues="nfMsLoanQueue" ref="nfMsLoanService"/>
+	</rabbit:listener-container>
+	
+	
+	
+</beans>

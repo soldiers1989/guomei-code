@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+
+	<bean id="r1301" class="com.sunline.ark.batch.VariableFileItemReader" scope="step">
+		<description>约定还款回盘文件</description>
+		<property name="detailClass" value="com.sunline.ppy.dictionary.exchange.DdResponseInterfaceItem"/>
+		<property name="resource" ref="resS0600DdResponse"/>
+<!-- 		<property name="charset" value="GBK"/> -->
+	</bean>
+	<bean id="p1301" class="com.sunline.ccs.batch.cc1300.P1301LoadDdResp" scope="step"/>
+	<!-- <bean id="w1301" class="com.sunline.acm.service.sdk.BatchFileWriter" scope="step">
+		<description>约定还款失败短信</description>
+		<property name="fileDetailClass" value="com.sunline.smsd.service.sdk.DdFailMessInterfaceItem"/>
+		<property name="filename" value="S060001DdFailMess"/>
+	</bean> -->
+	
+	<bean id="w1301" class="com.sunline.ark.batch.YakFileItemWriter" scope="step">
+		<description>约定还款失败短信</description>
+		<property name="resource" ref="resS060001DdFailMess"/>
+		<property name="fileDetailClass" value="com.sunline.smsd.service.sdk.DdFailMessInterfaceItem"/>
+	</bean>
+	
+	
+	<bean id="r1311" class="com.sunline.ark.batch.VariableFileItemReader" scope="step">
+		<description>贷款还款回盘文件</description>
+		<property name="detailClass" value="com.sunline.ppy.dictionary.exchange.LoanRepaymentInterfaceItem"/>
+		<property name="resource" ref="resS0605LoanRepayment"/>
+<!-- 		<property name="charset" value="GBK"/> -->
+	</bean>
+	<bean id="p1311" class="com.sunline.ccs.batch.cc1300.P1311LoadLoanRepay" scope="step"/>
+	<bean id="w1311" class="com.sunline.ark.batch.NullItemWriter" />
+	
+	
+	<bean id="r1321" class="com.sunline.ark.batch.VariableFileItemReader" scope="step">
+		<description>公务卡报销还款文件</description>
+		<property name="detailClass" value="com.sunline.ppy.dictionary.exchange.DdResponseInterfaceItem"/>
+		<property name="resource" ref="resS0611CsRepayment"/>
+<!-- 		<property name="charset" value="GBK"/> -->
+	</bean>
+	<bean id="p1321" class="com.sunline.ccs.batch.cc1300.P1321LoadCsRepay" scope="step"/>
+	<bean id="w1321" class="com.sunline.ark.batch.NullItemWriter" />
+	
+	<!-- <bean id="e1301" class="com.sunline.fps.service.sdk.batch.DbFileExporter" scope="step">
+	    <property name="instanceName" value="#{env.instanceName}" />
+	    <property name="systemType" value="CCS" />
+	    <property name="filenames">
+			<list>
+				<value>S060001DdFailMess</value>
+			</list>
+		</property>
+	</bean> -->
+	<!-- 马上回盘 -->
+	<bean id="r1331" class="com.sunline.ark.batch.VariableFileItemReader" scope="step">
+		<description>贷款还款回盘文件</description>
+		<property name="lineSperator" value="\|" />
+		<property name="detailClass" value="com.sunline.ppy.dictionary.exchange.MSLoanRepaymentInterfaceItem"/>
+		<property name="resource" ref="resS0605MSLoanRepayment"/>
+<!-- 		<property name="charset" value="GBK"/> -->
+	</bean>
+	<bean id="p1331" class="com.sunline.ccs.batch.cc1300.P1331LoadMSLoanRepay" scope="step"/>
+	<bean id="w1331" class="com.sunline.ark.batch.VariableFileItemWriter" scope="step" >
+		<property name="resource" ref="resA300RepaymentFailMsg" />
+		<property name="lineSeparator" value="\|" />
+		<property name="containLastSeparator" value="false" />
+		<property name="detailClass" value="com.sunline.ppy.dictionary.exchange.MSLoanMsgItem" />
+		<property name="extensionFileName" value="" />
+	</bean>
+	
+	<!-- 马上批量代付回盘 -->
+	<bean id="r1341" class="com.sunline.ark.batch.VariableFileItemReader" scope="step">
+		<description>贷款还款回盘文件</description>
+		<property name="lineSperator" value="\|" />
+		<property name="detailClass" value="com.sunline.ppy.dictionary.exchange.MSLoanRepaymentInterfaceItem"/>
+		<property name="resource" ref="resS1341MSDisburse"/>
+	</bean>
+	<bean id="p1341" class="com.sunline.ccs.batch.cc1300.P1341LoadMSDisburse" scope="step"/>
+	<bean id="w1341" class="com.sunline.ark.batch.NullItemWriter" />
+	
+</beans>

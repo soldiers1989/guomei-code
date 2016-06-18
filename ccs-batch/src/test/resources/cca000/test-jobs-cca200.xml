@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<beans default-lazy-init="false"
+	xmlns:p="http://www.springframework.org/schema/p"
+	xmlns="http://www.springframework.org/schema/beans"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:util="http://www.springframework.org/schema/util"
+	xmlns:jee="http://www.springframework.org/schema/jee"
+	xmlns:jms="http://www.springframework.org/schema/jms"
+	xmlns:batch="http://www.springframework.org/schema/batch"
+	xmlns:task="http://www.springframework.org/schema/task"
+	xsi:schemaLocation="http://www.springframework.org/schema/jee http://www.springframework.org/schema/jee/spring-jee-3.1.xsd
+		http://www.springframework.org/schema/jms http://www.springframework.org/schema/jms/spring-jms-3.1.xsd
+		http://www.springframework.org/schema/task http://www.springframework.org/schema/task/spring-task-3.2.xsd
+		http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.1.xsd
+		http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util-3.1.xsd
+		http://www.springframework.org/schema/batch http://www.springframework.org/schema/batch/spring-batch.xsd
+		http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-3.1.xsd">
+
+
+	<!-- 导入步骤定义 -->
+	<import resource="test-steps-cca200.xml"/>
+	<import resource="test-steps-cca-general.xml"/>
+
+	<!-- 用于支持并发批量的线程池 -->
+	<task:executor id="asyncTaskExecutor" pool-size="#{env['batchTaskPoolSize'] ?: 16}"/>
+	<batch:job id="SA200Job">
+		<batch:step id="cca201LoanRpt" next="cca202LoanBalanceRpt">
+			<batch:description>放款合同报表文件</batch:description>
+			<batch:tasklet>
+				<batch:chunk reader="ra201" writer="wa201"  commit-interval="#{env['commitInterval'] ?: 100}" />
+			</batch:tasklet>
+		</batch:step>
+		
+		<!-- 这个步骤的writer不支持分片 -->
+		<batch:step id="cca202LoanBalanceRpt" next="cca203LoanRecoveryRpt">
+			<batch:description>贷款余额报表文件</batch:description>
+			<!-- <batch:partition partitioner="ra202">
+				<batch:handler grid-size="#{env['GridSize'] ?: 16}" task-executor="asyncTaskExecutor"/>
+					<batch:step parent="stepTemplate">
+					<batch:tasklet>
+						<batch:chunk reader="ra202" processor="pa202" writer="wa202"  commit-interval="#{env['commitInterval'] ?: 100}" />
+					</batch:tasklet>
+					</batch:step>
+				</batch:partition> -->
+				<batch:tasklet>
+						<batch:chunk reader="ra202" processor="pa202" writer="wa202"  commit-interval="#{env['commitInterval'] ?: 100}" />
+					</batch:tasklet>
+		</batch:step>
+		
+		<batch:step id="cca203LoanRecoveryRpt" next="cca204LoanSettlePayRpt">
+			<batch:description>代位追偿报表文件</batch:description>
+			<batch:tasklet>
+				<batch:chunk reader="ra203" writer="wa203"  commit-interval="#{env['commitInterval'] ?: 100}" />
+			</batch:tasklet>
+		</batch:step>
+		<batch:step id="cca204LoanSettlePayRpt" next="cca205LoanSettleConfirmRpt">
+			<batch:description>结算支付(保费、提前还款违约金分成)报表文件</batch:description>
+			<batch:tasklet>
+				<batch:chunk reader="ra204" writer="wa204"  commit-interval="#{env['commitInterval'] ?: 100}" />
+			</batch:tasklet>
+		</batch:step>
+		<batch:step id="cca205LoanSettleConfirmRpt" next="cca206LoanRepayRpt">
+			<batch:description>理赔结果报表文件</batch:description>
+			<batch:tasklet>
+				<batch:chunk reader="ra205" writer="wa205"  commit-interval="#{env['commitInterval'] ?: 100}" />
+			</batch:tasklet>
+		</batch:step>
+		<batch:step id="cca206LoanRepayRpt" next="cca207LoanRecoveryPayRpt">
+			<batch:description>还款结果查询报表文件</batch:description>
+			<batch:tasklet>
+				<batch:chunk reader="ra206" writer="wa206"  commit-interval="#{env['commitInterval'] ?: 100}" />
+			</batch:tasklet>
+		</batch:step>
+		<batch:step id="cca207LoanRecoveryPayRpt"  next="cca292SendMSRpt">
+			<batch:description>还款结果查询报表文件</batch:description>
+			<batch:tasklet>
+				<batch:chunk reader="ra207" writer="wa207"  commit-interval="#{env['commitInterval'] ?: 100}" />
+			</batch:tasklet>
+		</batch:step>
+        <!-- 发送文件给阳光 -->
+      <!--  <batch:step  id="cca021SendYGFile" next="cca022SendMSRpt">
+        	<batch:tasklet ref="oa221"/>
+        </batch:step> -->
+        <!--  -->
+        <batch:step  id="cca292SendMSRpt" >
+        	<batch:tasklet ref="oa292"/>
+        </batch:step> 
+	</batch:job>
+</beans>

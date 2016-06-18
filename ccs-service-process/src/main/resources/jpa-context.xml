@@ -1,0 +1,211 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:tx="http://www.springframework.org/schema/tx"
+	xmlns:jee="http://www.springframework.org/schema/jee" xmlns:jpa="http://www.springframework.org/schema/data/jpa"
+	xsi:schemaLocation="http://www.springframework.org/schema/jee http://www.springframework.org/schema/jee/spring-jee-3.1.xsd
+		http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+		http://www.springframework.org/schema/data/jpa http://www.springframework.org/schema/data/jpa/spring-jpa-1.1.xsd
+		http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx-3.1.xsd">
+
+	<!-- 这里定义JPA相关配置。总体上来说，这里使用以Hibernate为Provider的JPA2.0方案，使用Spring来进行集成，不依赖于容器的JPA实现。 -->
+	<bean id="dataSource" class="org.apache.commons.dbcp.BasicDataSource"
+		destroy-method="close">
+		<property name="driverClassName" value="#{env['jdbcDriver']}" />
+		<property name="testOnBorrow" value="#{env['jdbcTestOnBorrow']?: true}" />
+		<property name="testOnReturn" value="#{env['jdbcTestOnReturn']?: false}" />
+		<property name="testWhileIdle" value="#{env['jdbcTestWhileIdle']?: false}" />
+		<property name="validationQuery" value="#{env['jdbcTestSql']}" />
+		<property name="maxActive" value="#{env['jdbcMaxActive'] ?: 20}" />
+		<property name="maxIdle" value="#{env['jdbcMaxIdle'] ?: 10 }" />
+		<property name="minIdle" value="#{env['jdbcMinIdle'] ?: 2 }" />
+		<property name="minEvictableIdleTimeMillis"
+			value="#{env['jdbcMinEvictableIdleTimeMillis'] ?: 1800000}" />
+		<property name="url" value="#{env.jdbcUrl}" />
+		<property name="username" value="#{env.jdbcUsername}" />
+		<property name="password" value="#{env.jdbcPassword}" />
+	</bean>
+
+	<bean id="emf"
+		class="org.springframework.orm.jpa.LocalContainerEntityManagerFactoryBean">
+		<description>
+			定义EntityManagerFactory，用于Spring控制事务。
+			具体的Hibernate配置在persistence.xml中控制，包括JPA
+			Provider和Hibernate的各种参数（不含组件扫描)。
+			为了避免在JavaEE容器使用默认的persistence.xml进行自动配置JPA，这里额外指定了文件名。
+		</description>
+		<property name="dataSource" ref="dataSource" />
+		<!-- 记录审计日志 -->
+		<!-- <property name="persistenceProvider" ref="hibernatePersistenceProvider"></property> -->
+		<property name="persistenceUnitName" value="default" />
+		<property name="packagesToScan">
+			<list>
+				<value>com.sunline.ccs.infrastructure.shared.model</value>
+			</list>
+		</property>
+		<property name="jpaVendorAdapter">
+			<bean class="org.springframework.orm.jpa.vendor.HibernateJpaVendorAdapter">
+				<property name="database" value="#{env['jpaDatabaseType']?:'DEFAULT'}" />
+				<property name="showSql" value="#{env['jpaShowSql']?:false}" />
+			</bean>
+		</property>
+		<property name="jpaProperties" value="#{env['jpaProperties']}" />
+	</bean>
+
+	<!-- 增加hibernate postupdatelog 的监听，可以配置到对哪些表以及表对应的数据发生变化后记录改变化，暂时使用手动配置的方式，后面优化的时候可以考虑实现在实体类的annotion上增加注解来实现 -->
+<!-- 	<bean id="hibernatePersistenceProvider"
+		class="com.sunline.ccs.facility.HibernatePersistenceExtendedProvider">
+		<property name="postInsertEventListeners">
+			<list>
+				<ref bean="hibernateAuditLogListener" />
+			</list>
+		</property>
+		<property name="postUpdateEventListeners">
+			<list>
+				<ref bean="hibernateAuditLogListener" />
+			</list>
+		</property>
+		<property name="postDeleteEventListeners">
+			<list>
+				<ref bean="hibernateAuditLogListener" />
+			</list>
+		</property>
+	</bean>
+
+     
+          配置策略：  
+    1.可用的关键字有：insertAllow,insertDeny,updateAllow,updateDeny,deleteAllow,deleteDeny  
+    2.没有配置对象的策略，所有字段不记录  
+    3.allow和deny都配置的按allow验证，并忽略deny  
+    4.allow和deny都允许指定all关键字  
+    5.多个字段用英文逗号隔开  
+    6.由于只能获取对象的名称，所以在配置的时候配置的key 和value 为对象的名称和字段名称
+    7.后期考虑增加配置页面来实现
+      
+	<bean id="hibernateAuditLogListener"
+		class="com.sunline.ccs.service.auditlog.HibernateAuditLogListener">
+		<property name="auditEntitys">
+			<map>
+				<entry key="CcsCustomer">
+					 <map>
+				 		<entry key="insertAllow">
+								<value>all</value>
+				 		</entry>
+				 		<entry key="updateAllow">
+								<value>all</value>
+				 		</entry>
+				 		<entry key="deleteAllow">
+								<value>all</value>
+				 		</entry>
+				 	</map>					
+				</entry>
+				<entry key="CcsCard">
+					 <map>
+				 		<entry key="insertAllow">
+								<value>all</value>
+				 		</entry>
+				 		<entry key="updateAllow">
+								<value>all</value>
+				 		</entry>
+				 		<entry key="deleteAllow">
+								<value>all</value>
+				 		</entry>
+				 	</map>					
+				</entry>
+					<entry key="CcsAddress">
+					 <map>
+				 		<entry key="insertAllow">
+								<value>all</value>
+				 		</entry>
+				 		<entry key="updateAllow">
+								<value>all</value>
+				 		</entry>
+				 		<entry key="deleteAllow">
+								<value>all</value>
+				 		</entry>
+				 	</map>					
+				</entry>
+					<entry key="CcsLinkman">
+					 <map>
+				 		<entry key="insertAllow">
+								<value>all</value>
+				 		</entry>
+				 		<entry key="updateAllow">
+								<value>all</value>
+				 		</entry>
+				 		<entry key="deleteAllow">
+								<value>all</value>
+				 		</entry>
+				 	</map>					
+				</entry>
+				<entry key="CcsCssfeeReg">
+					 <map>
+				 		<entry key="insertAllow">
+								<value>all</value>
+				 		</entry>
+				 		<entry key="updateAllow">
+								<value>all</value>
+				 		</entry>
+				 		<entry key="deleteAllow">
+								<value>all</value>
+				 		</entry>
+				 	</map>					
+				</entry>
+				<entry key="CcsCardO">
+					 <map>
+				 		<entry key="insertAllow">
+								<value>all</value>
+				 		</entry>
+				 		<entry key="updateAllow">
+								<value>all</value>
+				 		</entry>
+				 		<entry key="deleteAllow">
+								<value>all</value>
+				 		</entry>
+				 	</map>					
+				</entry>
+				<entry key="CcsAcct">
+					 <map>
+				 		<entry key="insertAllow">
+								<value>all</value>
+				 		</entry>
+				 		<entry key="updateAllow">
+								<value>all</value>
+				 		</entry>
+				 		<entry key="deleteAllow">
+								<value>all</value>
+				 		</entry>
+				 	</map>					
+				</entry>
+				<entry key="CcsAcctO">
+					 <map>
+				 		<entry key="insertAllow">
+								<value>all</value>
+				 		</entry>
+				 		<entry key="updateAllow">
+								<value>all</value>
+				 		</entry>
+				 		<entry key="deleteAllow">
+								<value>all</value>
+				 		</entry>
+				 	</map>					
+				</entry>
+			</map>
+		</property>
+	</bean> -->
+
+
+	<!-- 兼容Hibernate的SessionFactory，以便于批量的游标使用 -->
+	<bean id="sessionFactory" factory-bean="emf" factory-method="getSessionFactory" />
+
+	<!-- 事务设置 -->
+	<bean id="transactionManager" class="org.springframework.orm.jpa.JpaTransactionManager">
+		<property name="entityManagerFactory" ref="emf" />
+	</bean>
+
+	<!-- 事务使用AspectJ进行编译时Weave -->
+	<tx:annotation-driven mode="aspectj"
+		transaction-manager="transactionManager" />
+
+	<!-- Spring Data -->
+	<jpa:repositories base-package="com.sunline.ccs.infrastructure.server.repos" />
+</beans>

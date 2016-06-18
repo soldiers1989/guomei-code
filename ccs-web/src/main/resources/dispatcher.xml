@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:p="http://www.springframework.org/schema/p"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.0.xsd
+		http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-3.0.xsd">
+
+	<bean class="com.sunline.kylin.web.server.KylinHandlerExceptionResolver"></bean>
+	<context:component-scan base-package="com.sunline"/>
+	
+	<!-- 目前使用了Spring mvc模式，该mapping必须放在第一个位置 -->
+	<bean class="org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping" />
+	
+	<!-- 由于GWT体系，所有的Servlet必须初始化，所以用了 ServletConfigAware接口，所以所有Server需要在dispatcher-servlet里初始化 -->
+	<bean class="org.springframework.web.servlet.mvc.support.ControllerClassNameHandlerMapping" p:caseSensitive="true"/>
+	<bean class="org.springframework.web.servlet.handler.SimpleServletHandlerAdapter"/>
+	<bean class="org.springframework.web.servlet.mvc.SimpleControllerHandlerAdapter"/>
+	
+	<bean class="org.springframework.web.servlet.view.InternalResourceViewResolver" />
+	<bean class="org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter">
+		<property name="messageConverters">
+	   		<list>
+	    		<bean class="com.sunline.kylin.web.server.JacksonHttpMessageConverter">
+	     			<property name="supportedMediaTypes">
+	      				<list>
+					       <value>application/json;charset=UTF-8</value>
+	      				</list>
+					</property>
+				</bean>
+			</list>
+		</property>
+	</bean>
+	
+</beans>

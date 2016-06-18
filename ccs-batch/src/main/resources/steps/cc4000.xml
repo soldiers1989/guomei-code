@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+
+	<bean id="r4001" class="com.sunline.ark.batch.VariableFileItemReader" scope="step">
+		<description>卡片操作接口文件</description>
+	    <property name="detailClass" value="com.sunline.ppy.dictionary.exchange.CardActItem" />
+	    <property name="resource" ref="resS4800CardAct" />
+	</bean>
+
+	<bean id="p4001" class="com.sunline.ccs.batch.cc4000.P4001CardAction" scope="step"/>
+	
+	<!-- <bean id="w4001TempLostWarningMsg" class="com.sunline.acm.service.sdk.BatchFileWriter" scope="step">
+		<description>转正式挂失短信</description>
+		<property name="fileDetailClass" value="com.sunline.smsd.service.sdk.TempLostToChangeCardWarning" />
+		<property name="filename" value="S480101TempLostWarningMsg"/>
+	</bean>
+	
+	<bean id="w4001TempLostChangeMsg" class="com.sunline.acm.service.sdk.BatchFileWriter" scope="step">
+		<description>转正式挂失换卡短信</description>
+		<property name="fileDetailClass" value="com.sunline.smsd.service.sdk.TempLostToChangeCard" />
+		<property name="filename" value="S480102TempLostChangeMsg"/>
+	</bean> -->
+	
+	<bean id="w4001TempLostWarningMsg" class="com.sunline.ark.batch.YakFileItemWriter" scope="step">
+		<description>年费收取报表文件</description>
+		<property name="resource" ref="resS480101TempLostWarningMsg"/>
+		<property name="fileDetailClass" value="com.sunline.smsd.service.sdk.TempLostToChangeCardWarning"/>
+	</bean>
+	
+	<bean id="w4001TempLostChangeMsg" class="com.sunline.ark.batch.YakFileItemWriter" scope="step">
+		<description>年费收取报表文件</description>
+		<property name="resource" ref="resS480102TempLostChangeMsg"/>
+		<property name="fileDetailClass" value="com.sunline.smsd.service.sdk.TempLostToChangeCard"/>
+	</bean>
+	
+	<bean id="w4001" class="com.sunline.ark.batch.PropertyDelegateWriter" scope="step">
+	    <property name="writers">
+	    	<map>
+	    		<entry key="tempLostWarning" value-ref="w4001TempLostWarningMsg"/>
+	    		<entry key="tempLostChange" value-ref="w4001TempLostChangeMsg"/>
+	    	</map>
+	    </property>
+	</bean>
+	
+	<!-- <bean id="e4001" class="com.sunline.fps.service.sdk.batch.DbFileExporter" scope="step">
+	    <property name="instanceName" value="#{env.instanceName}" />
+	    <property name="systemType" value="CCS" />
+	    <property name="filenames">
+			<list>
+				<value>S480101TempLostWarningMsg</value>
+				<value>S480102TempLostChangeMsg</value>
+			</list>
+		</property>
+	</bean> -->
+	
+</beans>

@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE module PUBLIC "-//Google Inc.//DTD Google Web Toolkit 2.4.0//EN" "http://google-web-toolkit.googlecode.com/svn/tags/2.4.0/distro-source/core/src/gwt-module.dtd">
+<module rename-to="App">
+	<inherits name="com.google.gwt.i18n.I18N"/>
+	<inherits name="com.google.gwt.user.User" />
+	<inherits name="com.google.gwt.place.Place"/>
+	<inherits name="com.google.gwt.inject.Inject"/>
+	
+	<!-- <inherits name="com.sunline.pcm.ui.common.UI"/>
+	<inherits name="com.sunline.pcm.ui.cp.ControlPanel"/> -->
+	<inherits name="com.sunline.ccs.infrastructure.Module"/>
+	<inherits name="com.sunline.pcm.infrastructure.Module"/>
+	<inherits name="com.sunline.pcm.param.Module"/>
+	<inherits name="com.sunline.ui.print.Module"/>
+	<extend-property name="locale" values="zh_CN"/>
+	<stylesheet src="gwt/app.css"/>
+
+	<source path="client"/>
+	<source path="shared"/>
+	<public path="public"/>
+	<entry-point class="com.sunline.ccs.ui.client.loader.AppEntry"/>
+</module>
+

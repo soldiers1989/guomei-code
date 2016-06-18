@@ -1,0 +1,225 @@
+package com.sunline.ccs.service.authroization
+ 
+import java.util.Map;
+import com.sunline.ccs.param.def.AuthProduct;
+import com.sunline.ccs.param.def.enums.AuthReason;
+import com.sunline.ccs.param.def.enums.AuthAction;
+import com.sunline.ccs.param.def.Organization;
+import com.sunline.ppy.dictionary.enums.AuthTransType;
+import com.sunline.ccs.infrastructure.shared.model.CcsCardO;
+import com.sunline.ccs.service.auth.context.TxnInfo;
+import com.sunline.ccs.infrastructure.shared.model.CcsAcctO;
+import com.sunline.ccs.service.auth.context.CupMsg;
+import com.sunline.ppy.dictionary.enums.ManualAuthFlag;
+import com.sunline.ccs.param.def.enums.AuthTransDirection;
+
+import org.slf4j.Logger;global Map<AuthReason, AuthAction> result;
+
+rule "[Otb_001]  账户可用额验证"
+	
+	when
+		TxnInfo( checkList contains "Otb_001" )
+		$authProduct : AuthProduct()
+		TxnInfo( chbTransAmt > accountOTB)
+		$logger : Logger()	
+	then	
+		$logger.debug("# drools-rule:[Otb_001]-B001");
+		result.put(AuthReason.B001, $authProduct.reasonActions.get(AuthReason.B001));
+end
+
+
+rule "[Otb_002] 客户可用额验证"
+	
+	when
+		TxnInfo( checkList contains "Otb_002" )
+		$authProduct : AuthProduct()
+		//因为客户级额度是以人民币为单位的，
+		//所以判断入账币种是否为156，如果是156则不用乘以汇率换算，不是156则需要乘以汇率换算
+		//@since 2.5.0
+		TxnInfo( chbCurr == "156" && chbTransAmt > customerOTB )
+		or 
+		TxnInfo( chbCurr != "156" && chbTransAmt * conversionRt > customerOTB);
+		$logger : Logger()	
+	then	
+		$logger.debug("# drools-rule:[Otb_002]-B003ProcCode");
+		result.put(AuthReason.B003, $authProduct.reasonActions.get(AuthReason.B003));
+end
+
+
+rule "[Otb_003]  逻辑卡消费限额验证"
+	
+	when
+		TxnInfo( checkList contains "Otb_003" )
+		CcsCardO($txnLmt:txnLmt)
+		$authProduct : AuthProduct()
+		TxnInfo( transType == AuthTransType.Auth || transType == AuthTransType.AgentDebit || transType == AuthTransType.PreAuth || transType == AuthTransType.Load )
+		TxnInfo(  chbTransAmt > $txnLmt)
+		$logger : Logger()
+	then	
+		$logger.debug("# drools-rule:[Otb_003]-B005");
+		result.put(AuthReason.B005, $authProduct.reasonActions.get(AuthReason.B005));
+end
+
+
+rule "[Otb_004] [取现]账户取现可用额验证"
+	
+	when
+		TxnInfo( checkList contains "Otb_004" )
+		$authProduct : AuthProduct()
+		TxnInfo(transType == AuthTransType.Cash || transType == AuthTransType.TransferDeditDepos, chbTransAmt > cashOTB)
+		$logger : Logger()	
+	then	
+		$logger.debug("# drools-rule:[Otb_004]-B002CardNbr");
+		result.put(AuthReason.B002, $authProduct.reasonActions.get(AuthReason.B002));
+end
+
+
+/**rule "[56] [取现]账户限额验证"
+	
+	when
+		TxnInfo( checkList contains "56" )
+		$authProduct : AuthProduct()
+		TxnInfo(transType == AuthTransType.Cash || transType == AuthTransType.TransferDeditDepos, chbTransAmt > accountOTB)
+		$logger : Logger()	
+	then	
+		$logger.debug("# drools-rule:[Gen_002]-");
+		result.put(AuthReason.B001, $authProduct.reasonActions.get(AuthReason.B001));
+end**/
+
+
+/**rule "[57] [取现]逻辑卡单笔交易限额验证"
+	
+	when
+		TxnInfo( checkList contains "57" )
+		$authProduct : AuthProduct()
+		CcsCardO($txnLmt:txnLmt) 
+		TxnInfo( transType == AuthTransType.Cash || transType == AuthTransType.TransferDeditDepos > $txnLmt) 
+		$logger : Logger()	
+	then	
+		$logger.debug("# drools-rule:[Gen_002]-");
+		result.put(AuthReason.B005, $authProduct.reasonActions.get(AuthReason.B005));
+end**/
+
+
+rule "[Otb_005] [取现]逻辑卡单笔取现限额验证"
+	
+	when
+		TxnInfo( checkList contains "Otb_005" )
+		$authProduct : AuthProduct()
+		CcsCardO($txnCashLmt:txnCashLmt)
+		TxnInfo( transType == AuthTransType.Cash || transType == AuthTransType.TransferDeditDepos, chbTransAmt > $txnCashLmt)
+		not(
+			CupMsg(field(25) == "64" )
+			and
+			TxnInfo( manualAuthFlag != ManualAuthFlag.N )
+			)
+		$logger : Logger()	
+	then	
+		$logger.debug("# drools-rule:[Otb_005]-B006ChbAmt");
+		result.put(AuthReason.B006, $authProduct.reasonActions.get(AuthReason.B006));
+end
+
+rule "[Otb_006]  逻辑卡网银消费限额验证"
+	salience 100
+	when
+		TxnInfo( checkList contains "Otb_006" )
+		CcsCardO( $txnNetLmt : txnNetLmt )
+		$authProduct : AuthProduct()
+		TxnInfo( transType == AuthTransType.Auth || transType == AuthTransType.AgentDebit || transType == AuthTransType.PreAuth )
+		TxnInfo( isInternetTrans())
+		TxnInfo(  chbTransAmt > $txnNetLmt)
+		$logger : Logger()	
+	then	
+		$logger.debug("# drools-rule:[Otb_006]-B007TxnTime");
+		result.put(AuthReason.B007, $authProduct.reasonActions.get(AuthReason.B007));
+end
+
+rule "[Otb_007] [转出]账户溢缴款取现可用额度验证"
+	
+	when
+		TxnInfo( checkList contains "Otb_007" )
+		$authProduct : AuthProduct()
+		TxnInfo( !transferDeditOverdrawValid )
+		TxnInfo(transType == AuthTransType.TransferDeditDepos, chbTransAmt > depositeCashOTB)
+		$logger : Logger()	
+	then	
+		$logger.debug("# drools-rule:[Otb_007]-B002CardNbr");
+		result.put(AuthReason.B002, $authProduct.reasonActions.get(AuthReason.B002));
+end
+
+rule "[Otb_008] [分期]账户分期可用额度"
+	
+	when
+		TxnInfo( checkList contains "Otb_008" )
+		$authProduct : AuthProduct()
+		TxnInfo( transType == AuthTransType.Loan, chbTransAmt > loanOTB)
+		$logger : Logger()	
+	then	
+		$logger.debug("# drools-rule:[Otb_008]-B001");
+		result.put(AuthReason.B001, $authProduct.reasonActions.get(AuthReason.B001));
+end
+
+rule "[Otb_009] [贷记撤销]借记账户负OTB控制"
+	
+	when
+		TxnInfo( checkList contains "Otb_009" )
+		$authProduct : AuthProduct()
+		TxnInfo( creditVoidOtbCtrlInd )
+		TxnInfo( transType == AuthTransType.Credit, transDirection == AuthTransDirection.Revocation, (chbTransAmt - accountOTB) > crRevFloorLimit )
+		$logger : Logger()	
+	then	
+		$logger.debug("# drools-rule:[Otb_009]-B001");
+		result.put(AuthReason.B001, $authProduct.reasonActions.get(AuthReason.B001));
+end
+
+rule "[Otb_010] [贷记冲正]借记账户负OTB控制"
+	
+	when
+		TxnInfo( checkList contains "Otb_010" )
+		$authProduct : AuthProduct()
+		TxnInfo( creditReverseOtbCtrlInd )
+		TxnInfo( transType == AuthTransType.Credit, transDirection == AuthTransDirection.Reversal, (chbTransAmt - accountOTB) > crRevFloorLimit )
+		$logger : Logger()
+	then	
+		$logger.debug("# drools-rule:[Otb_010]-B001");
+		result.put(AuthReason.B001, $authProduct.reasonActions.get(AuthReason.B001));
+end
+
+rule "[Otb_011] [预授权完成撤销]账户负OTB控制"
+
+	when
+		TxnInfo(checkList contains "Otb_011")
+		$authProduct : AuthProduct()
+		$organization : Organization()
+		Organization( creditVoidOtbCtrlInd )
+		TxnInfo( transType == AuthTransType.PAComp, (origOrigTransAmt - chbTransAmt - accountOTB) > $organization.crRevFloorLimit)
+	then
+		result.put(AuthReason.B001, $authProduct.reasonActions.get(AuthReason.B001));
+		System.out.println("[Otb_011] 预授权完成撤销账户负OTB控制");
+end
+
+rule "[Otb_012] [预授权完成冲正]账户负OTB控制"
+
+	when
+		TxnInfo(checkList contains "Otb_012")
+		$authProduct : AuthProduct()
+		$organization : Organization()
+		Organization( creditReverseOtbCtrlInd )
+		TxnInfo( transType == AuthTransType.PAComp, (origOrigTransAmt - chbTransAmt - accountOTB) > $organization.crRevFloorLimit)
+	then
+		result.put(AuthReason.B001, $authProduct.reasonActions.get(AuthReason.B001));
+		System.out.println("[Otb_012] 预授权完成冲正账户负OTB控制");
+end
+
+rule "[Otb_013] [预授权完成]账户OTB控制"
+	/*
+		预授权完成金额-原预授权金额>OTB
+	*/
+	when
+		TxnInfo(checkList contains "Otb_013")
+		$authProduct : AuthProduct()
+		TxnInfo( transType == AuthTransType.PAComp, (chbTransAmt - origOrigTransAmt) > accountOTB )
+	then
+		result.put(AuthReason.B001, $authProduct.reasonActions.get(AuthReason.B001));
+		System.out.println("[Otb_013] [预授权完成]账户OTB控制");
+end

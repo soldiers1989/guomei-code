@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+		
+	<!-- 手工调额报表 -->
+	<bean id="r8502" class="com.sunline.ccs.batch.cc1500.R1502AcctCrlmtAdjRpt" scope="step"/>
+	
+	<bean id="p8502" class="com.sunline.ccs.batch.cc1500.P1502AcctCrlmtAdjRpt" scope="step"/>
+	
+	<bean id="w8502AcctCrlmtAdjSucessRpt" class="com.sunline.ark.batch.VariableFileItemWriter" scope="step">
+		<description>调额成功报表</description>
+		<property name="resource" ref="resS8502AcctCrlmtAdjSuccess"/>
+		<property name="lineSeparator" value="\|" />
+		<property name="containLastSeparator" value="false" />
+		<property name="detailClass" value="com.sunline.ppy.dictionary.report.ccs.AcctCrlmtAdjRptItem"/>
+		<property name="extensionFileName" value="#{env.extensionFileName}" />
+		<property name="validateFileName" value="#{env.validateFileName}" />
+	</bean>
+	
+	<bean id="w8502AcctCrlmtAdjFailRpt" class="com.sunline.ark.batch.VariableFileItemWriter" scope="step">
+		<description>调额失败报表</description>
+		<property name="resource" ref="resS8502AcctCrlmtAdjFail"/>
+		<property name="lineSeparator" value="\|" />
+		<property name="containLastSeparator" value="false" />
+		<property name="detailClass" value="com.sunline.ppy.dictionary.report.ccs.AcctCrlmtAdjRptItem"/>
+		<property name="extensionFileName" value="#{env.extensionFileName}" />
+		<property name="validateFileName" value="#{env.validateFileName}" />
+	</bean>
+	
+	<bean id="w8502" class="com.sunline.ark.batch.PropertyDelegateWriter" scope="step">
+		<property name="writers">
+			<map>
+				<entry key="acctCrlmtAdjSuccessRpt" value-ref="w8502AcctCrlmtAdjSucessRpt"/>
+				<entry key="acctCrlmtAdjFailRpt" value-ref="w8502AcctCrlmtAdjFailRpt"/>
+			</map>
+		</property>
+	</bean>
+	
+	<!-- 调额成功报表 -->
+	<bean id="resS8502AcctCrlmtAdjSuccess" class="com.sunline.ark.batch.ResourceFactoryBean" scope="step">
+		<description>手工调额报表文件</description>
+		<property name="resource" value="file:#{env.batchWorkDir}/#{new java.text.SimpleDateFormat('yyyyMMdd').format(batchStatusFacility.getBatchDate())}/AcctCrlmtAdjSucessRpt" />
+	</bean>
+	
+	<!-- 调额失败报表 -->
+	<bean id="resS8502AcctCrlmtAdjFail" class="com.sunline.ark.batch.ResourceFactoryBean" scope="step">
+		<description>手工调额报表文件</description>
+		<property name="resource" value="file:#{env.batchWorkDir}/#{new java.text.SimpleDateFormat('yyyyMMdd').format(batchStatusFacility.getBatchDate())}/AcctCrlmtAdjFailRpt" />
+	</bean>
+	
+</beans>

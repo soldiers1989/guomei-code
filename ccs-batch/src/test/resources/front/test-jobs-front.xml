@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<beans default-lazy-init="false"
+	xmlns:p="http://www.springframework.org/schema/p"
+	xmlns="http://www.springframework.org/schema/beans"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:util="http://www.springframework.org/schema/util"
+	xmlns:jee="http://www.springframework.org/schema/jee"
+	xmlns:jms="http://www.springframework.org/schema/jms"
+	xmlns:batch="http://www.springframework.org/schema/batch"
+	xmlns:task="http://www.springframework.org/schema/task"
+	xsi:schemaLocation="http://www.springframework.org/schema/jee http://www.springframework.org/schema/jee/spring-jee-3.1.xsd
+		http://www.springframework.org/schema/jms http://www.springframework.org/schema/jms/spring-jms-3.1.xsd
+		http://www.springframework.org/schema/task http://www.springframework.org/schema/task/spring-task-3.2.xsd
+		http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.1.xsd
+		http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util-3.1.xsd
+		http://www.springframework.org/schema/batch http://www.springframework.org/schema/batch/spring-batch.xsd
+		http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-3.1.xsd">
+
+
+	<!-- 导入步骤定义 -->
+	<import resource="test-steps-front.xml"/>
+
+	<!-- 批量步骤模版，目前用于定义一组listener -->
+	<batch:step id="stepTemplate" abstract="true">
+		<batch:listeners>
+			<batch:listener>
+				<bean class="com.sunline.ark.batch.DebugSupportListener"/>
+			</batch:listener>
+		</batch:listeners>
+	</batch:step>
+	<!-- 用于支持并发批量的线程池 -->
+	<task:executor id="asyncTaskExecutor" pool-size="#{env['batchTaskPoolSize'] ?: 16}"/>
+	<batch:job id="ccsFrontJob">
+		<!-- PTP扣款 -->
+		<batch:step parent="stepTemplate" id="s6000-ptp-payment" >
+		<batch:partition partitioner="r6000">
+			<batch:handler grid-size="#{env['GridSize'] ?: 16}" task-executor="asyncTaskExecutor"/>
+				<batch:step parent="stepTemplate">
+				<batch:tasklet>
+					<batch:chunk reader="r6000" processor="p6000" writer="w6000" commit-interval="#{env['frontCommitInterval'] ?: 100}" />
+				</batch:tasklet>
+			</batch:step>
+		</batch:partition>
+		</batch:step>
+        
+	</batch:job>
+</beans>

@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+
+	
+	<bean id="r2001" class="com.sunline.ccs.batch.cc2000.R2001TxnRejectImp" scope="step"/>
+	
+	<bean id="p2001" class="com.sunline.ccs.batch.cc2000.P2001TxnRejectImp" scope="step"/>
+	
+	<!-- <bean id="w2001RptTxn" class="com.sunline.acm.service.sdk.BatchFileWriter" scope="step">
+		<description>挂账报表文件</description>
+		<property name="fileDetailClass" value="com.sunline.ppy.dictionary.report.ccs.RptTxnItem"/>
+		<property name="filename" value="S010001Rpt"/>
+	</bean>
+	<bean id="w2001TxnGl" class="com.sunline.acm.service.sdk.BatchFileWriter" scope="step">
+		<description>挂账送总账文件</description>
+		<property name="fileDetailClass" value="com.sunline.ppy.dictionary.exchange.GlTxnItem"/>
+		<property name="filename" value="S010002Gl"/>
+	</bean> -->
+	
+	<bean id="w2001RptTxn" class="com.sunline.ark.batch.YakPartitionFileItemWriter" scope="step">
+		<description>挂账报表文件</description>
+		<property name="resource" ref="resS010001Rpt"/>
+		<property name="fileDetailClass" value="com.sunline.ppy.dictionary.report.ccs.RptTxnItem"/>
+	</bean>
+	
+	<bean id="w2001TxnGl" class="com.sunline.ark.batch.YakPartitionFileItemWriter" scope="step">
+		<description>挂账送总账文件</description>
+		<property name="resource" ref="resS010002Gl"/>
+		<property name="fileDetailClass" value="com.sunline.ppy.dictionary.exchange.GlTxnItem"/>
+	</bean>
+	
+	<bean id="w2001" class="com.sunline.ark.batch.PropertyDelegateWriter" scope="step">
+		<property name="writers">
+			<map>
+				<entry key="rptTxnItem" value-ref="w2001RptTxn"/>
+				<entry key="glTxnItemList" value-ref="w2001TxnGl"/>
+			</map>
+		</property>
+	</bean>
+	
+	<bean id="t2001FileMerger" class="com.sunline.ark.batch.FileMergerTasklet">
+		<property name="taskExecutor" ref="asyncTaskExecutor"/>
+		<property name="pollInterval" value="#{env['pollInterval']?:2000}" />
+		<property name="resources" >
+			<list>
+				<ref bean="resS010001Rpt" />
+				<ref bean="resS010002Gl" />
+			</list>
+		</property>
+	</bean>
+	
+	<!-- <bean id="e2001" class="com.sunline.fps.service.sdk.batch.DbFileExporter" scope="step">
+	    <property name="instanceName" value="#{env.instanceName}" />
+	    <property name="systemType" value="CCS" />
+		<property name="filenames">
+			<list>
+				<value>S010001Rpt</value>
+				<value>S010002Gl</value>
+			</list>
+		</property>
+	</bean> -->
+</beans>

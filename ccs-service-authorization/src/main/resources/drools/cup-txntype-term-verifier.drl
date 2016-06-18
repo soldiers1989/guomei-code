@@ -1,0 +1,37 @@
+//created on: 2012-7-26
+package com.sunline.ccs.service.auth.verifier
+
+import java.util.Map;
+import com.sunline.ccs.param.def.enums.AuthReason;
+import com.sunline.ccs.param.def.AuthProduct;
+import com.sunline.ppy.dictionary.enums.AuthTransType;
+import com.sunline.ccs.param.def.enums.AuthTransTerminal;
+import com.sunline.ccs.service.auth.context.TxnInfo;
+import com.sunline.ccs.param.def.enums.AutoType;
+import com.sunline.ppy.dictionary.enums.Indicator;
+
+import org.slf4j.Logger;
+global Map<AuthReason, AuthAction> result;
+
+rule "[Rsn_001] 交易/终端渠道交叉检查"
+    when
+		TxnInfo( checkList contains "Rsn_001", $transType : transType, $transTerminal : transTerminal )
+		$authProduct : AuthProduct( !isTransTypeTerminalEnabled( $transType, $transTerminal ) )
+    	$logger : Logger()	
+    then	
+    	$logger.debug("# drools-rule:[Rsn_001]-TS02");
+    	result.put( AuthReason.TS02, $authProduct.reasonActions.get(AuthReason.TS02) );
+end
+
+rule "[Rsn_002] 无卡自助开通检查"
+    when
+		TxnInfo( checkList contains "Rsn_002" )
+		TxnInfo( autoType == AutoType.NoCardSelfService )
+		TxnInfo( noCardPrzTxnSupportInd == Indicator.N )
+		TxnInfo( authVerifyType == "09")
+		$authProduct : AuthProduct()
+    	$logger : Logger()	
+    then	
+    	$logger.debug("# drools-rule:[Rsn_002]-TT05");
+    	result.put( AuthReason.TT05, $authProduct.reasonActions.get(AuthReason.TT05) );
+end

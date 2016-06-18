@@ -1,0 +1,97 @@
+package com.sunline.ccs.service.auth.verifier
+
+import java.util.Map;
+import org.apache.commons.lang.StringUtils;
+import com.sunline.ppy.dictionary.enums.Indicator;
+import com.sunline.ppy.dictionary.enums.AuthTransType;
+import com.sunline.ccs.param.def.enums.AuthReason;
+import com.sunline.ccs.param.def.AuthProduct;
+import com.sunline.ccs.param.def.ProductCredit;
+import com.sunline.ccs.infrastructure.shared.model.CcsCardO;
+import com.sunline.ccs.service.auth.context.LoanInfo;
+import com.sunline.ccs.service.auth.context.TxnInfo;
+import com.sunline.ccs.param.def.LoanPlan;
+import com.sunline.ccs.param.def.LoanFeeDef;
+import com.sunline.ccs.param.def.enums.LoanPlanStatus;
+
+import org.slf4j.Logger;
+global Map<AuthReason, AuthAction> result;
+
+rule "[Mcr_001] 逾期期数或六个月内逾期次数达标不允许使用"
+    when
+		TxnInfo( checkList contains "Mcr_001" )
+		TxnInfo( $cdTerms : cdTerms, $sixMonCdCount : sixMonCdCount )
+		ProductCredit( $cdTerms >= maxCd || $sixMonCdCount >= latestCdCount)
+		$authProduct : AuthProduct()
+    	$logger : Logger()
+    then
+    	$logger.debug("# drools-rule:[Mcr_001]-MC01");
+    	result.put( AuthReason.MC01, $authProduct.reasonActions.get(AuthReason.MC01) );
+end
+
+rule "[Mcr_002] 不超过贷款授信有效期"
+    when
+		TxnInfo( checkList contains "Mcr_002" )
+		ProductCredit( creditExpiryDateInd == Indicator.Y )
+		//gtLastTerm:当前业务日期+总期数转成的月数)lastTerm>贷款授信有效期(卡片有效期)
+		TxnInfo( transType == AuthTransType.TransferDeditDepos, gtLastTermDate )
+		$authProduct : AuthProduct()
+    	$logger : Logger()
+   	then	
+   		$logger.debug("# drools-rule:[Mcr_002]-MC02");
+    	result.put( AuthReason.MC02, $authProduct.reasonActions.get(AuthReason.MC02) );
+end
+
+rule "[Mcr_003] 最大最小金额限额"
+	when
+		TxnInfo( checkList contains "Mcr_003" )
+		// 获取期数
+		LoanInfo( $lfd : LoanFeeDef ,$lfd != null)
+		// 当前交易金额
+		TxnInfo( $cta : chbTransAmt)
+		// 当前交易金额：大于小额贷最大金额、小于小额贷最小金额
+		LoanInfo( $cta < $lfd.minAmount || $cta > $lfd.maxAmount )
+		$authProduct : AuthProduct()
+		$logger : Logger()	
+	then	
+		$logger.debug("# drools-rule:[Mcr_003]-B011Trace");
+		result.put( AuthReason.B011, $authProduct.reasonActions.get( AuthReason.B011 ) );
+end
+
+rule "[Mcr_004] 客户小额贷可用额验证"
+	
+	when
+		TxnInfo( checkList contains "Mcr_004" )
+		TxnInfo(  chbTransAmt > microCreditOTB);
+		$authProduct : AuthProduct()
+		$logger : Logger()
+	then
+		$logger.debug("# drools-rule:[Mcr_004]-B003ProcCode");
+		result.put(AuthReason.B003, $authProduct.reasonActions.get(AuthReason.B003));
+end
+
+rule "[Mcr_005] 小额贷产品有效期验证"
+	
+	when
+		TxnInfo( checkList contains "Mcr_005" )
+		TxnInfo( $bizDate : bizDate )
+		// 当前业务日期大于贷款产品有效期
+		LoanInfo(loanPlan != null , $bizDate > loanPlan.loanValidity )
+		$authProduct : AuthProduct()
+		$logger : Logger()	
+	then	
+		$logger.debug("# drools-rule:[Mcr_005]-TL53");
+		result.put(AuthReason.TL53, $authProduct.reasonActions.get(AuthReason.TL53));
+end
+
+rule "[Mcr_006] 小额贷产品状态验证"
+	when
+		TxnInfo( checkList contains "Mcr_006" )
+		// 贷款产品状态等于暂停使用或关闭
+		LoanInfo(loanPlan != null , (loanPlan.loanStaus == LoanPlanStatus.S ))
+		$authProduct : AuthProduct()
+		$logger : Logger()	
+	then	
+		$logger.debug("# drools-rule:[Mcr_006]-TL52");
+		result.put(AuthReason.TL52, $authProduct.reasonActions.get(AuthReason.TL52));
+end

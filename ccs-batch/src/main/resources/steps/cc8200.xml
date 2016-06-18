@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+
+	<!-- 根据条件删除authInq中的交易 -->
+	<bean id="r8201"  class="com.sunline.ccs.batch.cc8200.R8201AuthInqLogClean" scope="step"/>
+	
+	<bean id="p8201"  class="com.sunline.ccs.batch.cc8200.P8201AuthInqLogClean" scope="step"/>
+	
+	<!-- <bean id="w8201" class="com.sunline.acm.service.sdk.BatchFileWriter" scope="step">
+		<description>授权历史文件</description>
+		<property name="fileDetailClass" value="com.sunline.ccs.batch.cc8000.U8001AuthMemo" />
+		<property name="filename" value="S8200AuthDelInq"/>
+	</bean> -->
+	
+	<bean id="w8201" class="com.sunline.ark.batch.YakPartitionFileItemWriter" scope="step">
+		<description>authInq中的交易</description>
+		<property name="resource" ref="resS8200AuthDelInq"/>
+		<property name="fileDetailClass" value="com.sunline.ccs.batch.cc8000.U8001AuthMemo"/>
+	</bean>
+	
+	<bean id="t8201FileMerger" class="com.sunline.ark.batch.FileMergerTasklet">
+		<property name="taskExecutor" ref="asyncTaskExecutor"/>
+		<property name="pollInterval" value="#{env['pollInterval']?:2000}" />
+		<property name="resources" >
+			<list>
+				<ref bean="resS8200AuthDelInq" />
+			</list>
+		</property>
+	</bean>
+	
+	<!-- <bean id="e8201" class="com.sunline.fps.service.sdk.batch.DbFileExporter" scope="step">
+	    <property name="instanceName" value="#{env.instanceName}" />
+	    <property name="systemType" value="CCS" />
+	    <property name="filenames">
+			<list>
+				<value>S8200AuthDelInq</value>
+			</list>
+		</property>
+	</bean> -->
+</beans>

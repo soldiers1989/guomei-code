@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+
+	<bean id="respFileWaitDown" class="com.sunline.ccs.batch.common.FTPFileWaitingAndDownTask" >
+	    <property name="ftpClientOperations" ref="amqueFtpClient" />
+	    <property name="ptpFileName"  value="ptpRepayment" ></property>
+	</bean>
+
+	<bean id="frontFileWait" class="com.sunline.acm.service.sdk.ResourceWaitingTask" scope="step">
+		<description>waitResourcesM,必须存在，waitResourcesO，非必须，如果不存在自动创建</description>
+		<property name="waitResourcesM">
+			<list></list>
+		</property>
+		<property name="waitResourcesO">
+			<list>
+				<ref bean="resS6000PtpPaymentFile" />
+			</list>
+		</property>
+	</bean>
+
+	<bean id="r1000" class="com.sunline.ccs.batch.front.R1000NormalPayment" scope="step" />
+	<bean id="p1000" class="com.sunline.ccs.batch.front.P1000NormalPayment" scope="step" />
+	<bean id="w1000" class="com.sunline.ark.batch.NullItemWriter" scope="step" />
+	
+	<bean id="r1100" class="com.sunline.ccs.batch.front.R1100MCATNormalPayment" scope="step" />
+	<bean id="p1100" class="com.sunline.ccs.batch.front.P1100MCATNormalPayment" scope="step" />
+	<bean id="w1100" class="com.sunline.ark.batch.NullItemWriter" scope="step" />
+
+	<bean id="abstractReportWriter" abstract="true" class="com.sunline.ark.batch.VariableMSReportFileItemWriter" > 
+		<property name="lineSeparator" value="\|" />
+		<property name="extensionFileName" value=".txt" /> 
+		<property name="validateFileName" value=".txt.ctrl" />
+	</bean>
+	<bean id="r6000" class="com.sunline.ark.batch.YakJsonFileItemReader" scope="step">
+		<property name="fileDetailClass"
+			value="com.sunline.ccs.batch.front.SPtpBatchCutFile" />
+		<property name="resource" ref="resS6000PtpPaymentFile" />
+	</bean>
+	<bean id="p6000" class="com.sunline.ccs.batch.front.P6000PTPayment" scope="step" />
+	<bean id="w6000" class="com.sunline.ark.batch.NullItemWriter" scope="step" />
+	
+	<bean id="r2000" class="com.sunline.ccs.batch.front.R2000OverduePayment" scope="step" />
+	<bean id="p2000" class="com.sunline.ccs.batch.front.P2000OverduePayment" scope="step" />
+	<bean id="w2000" class="com.sunline.ark.batch.NullItemWriter" scope="step" />
+	
+	<bean id="r2100" class="com.sunline.ccs.batch.front.R2100MCATOverduePayment" scope="step" />
+	<bean id="p2100" class="com.sunline.ccs.batch.front.P2100MCATOverduePayment" scope="step" />
+	<bean id="w2100" class="com.sunline.ark.batch.NullItemWriter" scope="step" />
+	
+	<bean id="r3000" class="com.sunline.ccs.batch.front.R3000Prepayment" scope="step" />
+	<bean id="p3000" class="com.sunline.ccs.batch.front.P3000Prepayment" scope="step" />
+	<bean id="w3000" class="com.sunline.ark.batch.NullItemWriter" scope="step" />
+	
+	<bean id="r4000" class="com.sunline.ccs.batch.front.R4000Claim" scope="step" />
+	<bean id="p4000" class="com.sunline.ccs.batch.front.P4000Claim" scope="step" />
+	<bean id="w4000" class="com.sunline.ark.batch.NullItemWriter" scope="step" />
+	
+	<bean id="r5000" class="com.sunline.ccs.batch.front.R5000Subrogation" scope="step" />
+	<bean id="p5000" class="com.sunline.ccs.batch.front.P5000Subrogation" scope="step" />
+	<bean id="w5000" class="com.sunline.ark.batch.NullItemWriter" scope="step" />
+	
+	<bean id="gatherClaimOrder" class="com.sunline.ccs.batch.front.GatherClaimOrderTasklet" />
+	
+	<bean id="r9000" class="com.sunline.ccs.batch.front.R9000GeneratePaymentFile" scope="step" />
+	<bean id="p9000" class="com.sunline.ccs.batch.front.P9000GeneratePaymentFile" scope="step" />
+	<bean id="w9000" class="com.sunline.ark.batch.VariableFileItemWriter" scope="step" >
+		<property name="resource" ref="res9000Payment" />
+		<property name="lineSeparator" value="\|" />
+		<property name="containLastSeparator" value="false" />
+		<property name="detailClass" value="com.sunline.ccs.batch.front.S9000PaymentItem" />
+		<property name="extensionFileName" value="#{env.extensionFileName}" />
+		<property name="validateFileName" value="#{env.validateFileName}" />
+	</bean>
+	<bean id="res9000Payment" class="com.sunline.ark.batch.ResourceFactoryBean">
+		<description>代扣文件</description>
+		<property name="resource" value="file:#{env.batchWorkDir}/#{env.paymentFileName}" />
+	</bean>
+	
+	<!-- 处理代付文件 -->
+	<bean id="r9100" class="com.sunline.ccs.batch.front.R9100GenerateDisburseFile" scope="step" />
+	<bean id="p9100" class="com.sunline.ccs.batch.front.P9100GenerateDisburseFile" scope="step" />
+	<bean id="w9100" class="com.sunline.ark.batch.VariableFileItemWriter" scope="step" >
+		<property name="resource" ref="res9100Disburse" />
+		<property name="lineSeparator" value="\|" />
+		<property name="containLastSeparator" value="false" />
+		<property name="detailClass" value="com.sunline.ccs.batch.front.S9100DisburseItem" />
+		<property name="extensionFileName" value="#{env.extensionFileName}" />
+		<property name="validateFileName" value="#{env.validateFileName}" />
+	</bean>
+	<bean id="res9100Disburse" class="com.sunline.ark.batch.ResourceFactoryBean">
+		<description>代付文件</description>
+		<property name="resource" value="file:#{env.batchWorkDir}/#{env.disburseFileName}" />
+	</bean>
+	
+    <bean id="frontTransferFile" class="com.sunline.ccs.batch.front.TransferFileTasklet">
+		<property name="ftpClientOperations" ref="bizchannelFtpClient"/>
+	</bean>
+
+</beans>

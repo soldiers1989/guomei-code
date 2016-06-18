@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+	
+	<bean id="abstractSettleWriter" abstract="true" class="com.sunline.ark.batch.VariablePartitionFileItemWriter" >
+		<property name="lineSeparator" value="\|" />
+		<property name="containLastSeparator" value="true" />
+	</bean>
+	
+	<!-- 结算记录 - 代收费-->
+	<bean id="ra401" class="com.sunline.ccs.batch.cca400.RA401SettleReplaceFee" scope="step" />
+	<bean id="wa401" class="com.sunline.ark.batch.NullItemWriter" scope="step" />
+	
+	<!-- 结算记录 - 趸交费 -->
+	<bean id="ra402" class="com.sunline.ccs.batch.cca400.RA402SettlePremiumAmt" scope="step" />
+	<bean id="wa402" class="com.sunline.ark.batch.NullItemWriter" scope="step" />
+		
+	<bean id="ra408" class="com.sunline.ccs.batch.cca400.RA408SettleFile" scope="step" />
+	<bean id="wa408" parent="abstractSettleWriter" scope="step" >
+		<description>结算文件</description>
+		<property name="resource" ref="resA401SettleReqRpt"/>
+		<property name="fileDetailClass" value="com.sunline.ccs.batch.cca400.item.SettleReqRptItem" />
+	</bean>	
+	
+	<bean id="ma400" class="com.sunline.ark.batch.VariableFileMergerTasklet">
+		<property name="taskExecutor" ref="asyncTaskExecutor"/>
+		<property name="pollInterval" value="#{env['pollInterval']?:2000}" />
+		<property name="resources" >
+			<list>
+				<ref bean="resA401SettleReqRpt"/>
+			</list>
+		</property>
+		<property name="fileSuffix" value=".txt" />
+		<property name="valiFileSuffix" value=".ctrl" />
+		<property name="lineSeparator" value="|" />
+	</bean>
+
+	<bean id="oa409" class="com.sunline.ccs.batch.cca400.OA409SendSettleRpt" scope="step">
+		<description>发送结算文件</description>
+		<property name="ftpOperations" ref="settlePlatformFtpClient"/>
+		<property name="extensionFileName" value=".txt" />
+		<property name="validateFileName" value=".ctrl" />
+		<property name="filePaths">
+			<map>
+				<entry key="#{env.settlePlatFormFilePath}">
+					<list>
+						<ref bean="resA401SettleReqRpt" />
+					</list>
+				</entry>
+			</map>
+		</property>
+	</bean>
+</beans>

@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<beans default-lazy-init="false"
+	xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:p="http://www.springframework.org/schema/p"
+	xmlns:rabbit="http://www.springframework.org/schema/rabbit"
+	xmlns:task="http://www.springframework.org/schema/task"
+	xsi:schemaLocation="http://www.springframework.org/schema/task http://www.springframework.org/schema/task/spring-task-3.1.xsd
+		http://www.springframework.org/schema/rabbit http://www.springframework.org/schema/rabbit/spring-rabbit-1.1.xsd
+		http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.1.xsd">
+	<!-- PCM服务的Proxy定义 -->
+	<bean id="pcmParameterService" class="com.sunline.acm.service.sdk.ServiceProxyFactoryBean">
+		<property name="serviceInterface" value="com.sunline.pcm.service.api.UnifiedParameterService"/>
+	</bean>
+	<!-- <bean id="pcmSecurityService" class="com.sunline.acm.service.sdk.ServiceProxyFactoryBean">
+		<property name="serviceInterface" value="com.sunline.kylin.web.server.SecurityService"/>
+	</bean> -->
+	
+	<!-- 参数基础设施 -->
+	<bean id="unifiedParameterFacility" class="com.sunline.pcm.service.sdk.UnifiedParameterFacility">
+		<property name="unifiedParameterService" ref="pcmParameterService"/>
+	</bean>
+	
+	<rabbit:queue queue-arguments="amqpQueueArguments" id="parameterRefreshListenerQueue"/>
+	<rabbit:topic-exchange name="global.acm.ex.cache">
+		<rabbit:bindings>
+			<!-- 监听pcm参数刷新主题 -->
+			<rabbit:binding queue="parameterRefreshListenerQueue" pattern="pcm.parameter" />
+		</rabbit:bindings>
+	</rabbit:topic-exchange>
+	
+	<!-- <rabbit:listener-container requeue-rejected="false" concurrency="1" message-converter="acmMessageConverter">
+		<rabbit:listener queues="parameterRefreshListenerQueue" ref="unifiedParameterFacility" method="refreshParameter"/>
+	</rabbit:listener-container> -->
+
+	<!-- UnifiedParameterFacility所需缓存配置 -->
+	<bean class="org.springframework.cache.concurrent.ConcurrentMapCacheFactoryBean" p:name="parameterUniqueCache" />
+	<bean class="org.springframework.cache.concurrent.ConcurrentMapCacheFactoryBean" p:name="parameterMapCache" />
+	<bean class="org.springframework.cache.concurrent.ConcurrentMapCacheFactoryBean" p:name="parameterKnowledgeBaseCache" />
+</beans>

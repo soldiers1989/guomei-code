@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+
+	<bean id="r0101" class="com.sunline.ark.batch.VariableFileItemReader" scope="step">
+		<description>申请文件</description>
+	    <property name="detailClass" value="com.sunline.ppy.dictionary.exchange.ApplyFileItem" />
+	    <property name="resource" ref="resS0000Apply" />
+	</bean>
+
+	<bean id="p0101" class="org.springframework.batch.item.support.CompositeItemProcessor" scope="step">
+		<property name="delegates">
+			<list>
+				<bean class="com.sunline.ark.batch.SimpleExtractorProcessor"/>
+				<bean class="com.sunline.ccs.batch.cc0100.P0101Setup"/>
+			</list>
+		</property>
+	</bean>
+	
+	<!-- <bean id="w0101ApplyRespRpt" class="com.sunline.acm.service.sdk.BatchFileWriter" scope="step">
+		<description>申请成功报表接口</description>
+		<property name="fileDetailClass" value="com.sunline.ppy.dictionary.report.ccs.ApplyResponseRptItem"/>
+		<property name="filename" value="S000001Success"/>
+	</bean>
+
+	<bean id="w0101ApplyRespMsg" class="com.sunline.acm.service.sdk.BatchFileWriter" scope="step">
+		<description>申请短信</description>
+		<property name="fileDetailClass" value="com.sunline.smsd.service.sdk.ApplyResponseSMItem"/>
+		<property name="filename" value="S000002SMS"/>
+	</bean>
+	
+	<bean id="w0101VCardApplyResp" class="com.sunline.acm.service.sdk.BatchFileWriter" scope="step">
+		<description>虚拟卡申请回盘文件</description>
+		<property name="fileDetailClass" value="com.sunline.ppy.dictionary.exchange.VCardApplyResponseItem"/>
+		<property name="filename" value="S000003VCardApplyResponse"/>
+	</bean> -->
+	
+	<!-- file -->
+	
+	<bean id="w0101ApplyRespRpt" class="com.sunline.ark.batch.YakFileItemWriter" scope="step">
+		<description>申请成功报表接口</description>
+		<property name="resource" ref="resS000001Success"/>
+		<property name="fileDetailClass" value="com.sunline.ppy.dictionary.report.ccs.ApplyResponseRptItem"/>
+	</bean>
+	
+	<bean id="w0101ApplyRespMsg" class="com.sunline.ark.batch.YakFileItemWriter" scope="step">
+		<description>申请短信</description>
+		<property name="resource" ref="resS000002SMS"/>
+		<property name="fileDetailClass" value="com.sunline.smsd.service.sdk.ApplyResponseSMItem"/>
+	</bean>
+	
+	<bean id="w0101VCardApplyResp" class="com.sunline.ark.batch.YakFileItemWriter" scope="step">
+		<description>虚拟卡申请回盘文件</description>
+		<property name="resource" ref="resS000003VCardApplyResponse"/>
+		<property name="fileDetailClass" value="com.sunline.ppy.dictionary.exchange.VCardApplyResponseItem"/>
+	</bean>
+	
+	<bean id="w0101" class="com.sunline.ark.batch.PropertyDelegateWriter" scope="step">
+		<property name="writers">
+			<map>
+				<entry key="applyResponseRptItemList" value-ref="w0101ApplyRespRpt"/>
+				<entry key="applyResponseSMItem" value-ref="w0101ApplyRespMsg"/>
+				<entry key="vCardApplyResponse" value-ref="w0101VCardApplyResp"/>
+			</map>
+		</property>
+	</bean>
+	
+	<!-- <bean id="e0101" class="com.sunline.fps.service.sdk.batch.DbFileExporter" scope="step">
+	    <property name="instanceName" value="#{env.instanceName}" />
+	    <property name="systemType" value="CCS" />
+		<property name="filenames">
+			<list>
+				<value>S000001Success</value>
+				<value>S000002SMS</value>
+				<value>S000003VCardApplyResponse</value>
+			</list>
+		</property>
+	</bean> -->
+	
+</beans>

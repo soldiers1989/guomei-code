@@ -1,0 +1,354 @@
+//created on: 2012-7-26
+package com.sunline.ccs.service.auth.verifier
+
+import java.util.Map;
+import org.apache.commons.lang.StringUtils;
+import com.sunline.ccs.param.def.AuthProduct;
+import com.sunline.ccs.param.def.enums.AuthReason;
+import com.sunline.ppy.dictionary.enums.VerifyResult;
+import com.sunline.ppy.dictionary.enums.AuthTransType;
+import com.sunline.ccs.param.def.enums.AuthTransTerminal;
+import com.sunline.ccs.service.auth.context.TxnInfo;
+import com.sunline.ccs.service.auth.context.CupMsg;
+import com.sunline.ppy.dictionary.enums.TransMedium;
+import com.sunline.ccs.param.def.enums.AutoType;
+
+import org.slf4j.Logger;
+global Map<AuthReason, AuthAction> result;
+
+rule "[Ass_001] 辅助验证密码检查未上送"
+    when
+		TxnInfo( checkList contains "Ass_001" )
+    	CupMsg( f061_6_AM_PinCheckFlag, !exist(52) )
+    	$authProduct : AuthProduct()
+    	$logger : Logger()	
+    then	
+    	$logger.debug("# drools-rule:[Ass_001]-V033");
+		result.put( AuthReason.V033, $authProduct.reasonActions.get( AuthReason.V033 ) );
+end
+
+rule "[Ass_002] 辅助验证有效期检查未上送"
+    when
+		TxnInfo( checkList contains "Ass_002" )
+    	CupMsg( f061_6_AM_ExpireDateCheckFlag, !exist(14) )
+    	$authProduct : AuthProduct()
+    	$logger : Logger()	
+    then	
+    	$logger.debug("# drools-rule:[Ass_002]-V034");
+		result.put( AuthReason.V034, $authProduct.reasonActions.get( AuthReason.V034 ) );
+end
+
+rule "[Ass_003] 辅助验证身份证检查未上送"
+    when
+		TxnInfo( checkList contains "Ass_003" )
+    	CupMsg( f061_6_AM_IDCheckFlag, StringUtils.isBlank( f061_1_IdNbr ) )
+    	$authProduct : AuthProduct()
+    	$logger : Logger()
+   	then
+   		$logger.debug("# drools-rule:[Ass_003]-V035");
+		result.put( AuthReason.V035, $authProduct.reasonActions.get( AuthReason.V035 ) );
+end
+
+rule "[Ass_004] 辅助验证磁道检查未上送"
+    when
+		TxnInfo( checkList contains "Ass_004" )
+    	CupMsg( f061_6_AM_TrackCheckFlag, !exist(35), !exist(36), !exist(45) )
+    	$authProduct : AuthProduct()
+    	$logger : Logger()	
+    then	
+    	$logger.debug("# drools-rule:[Ass_004]-V036");
+		result.put( AuthReason.V036, $authProduct.reasonActions.get( AuthReason.V036 ) );
+end
+
+rule "[Ass_005] 辅助验证委托关系检查不支持"
+    when
+		TxnInfo( checkList contains "Ass_005" )
+    	CupMsg( f061_6_AM_RecurringpayCheckFlag )
+    	$authProduct : AuthProduct()
+    	$logger : Logger()	
+    then	
+    	$logger.debug("# drools-rule:[Ass_005]-V037");
+		result.put( AuthReason.V037, $authProduct.reasonActions.get( AuthReason.V037 ) );
+end
+
+rule "[Ass_006] 辅助验证cvn2检查未上送"
+    when
+		TxnInfo( checkList contains "Ass_006" )
+    	CupMsg( f061_6_AM_Cvv2CheckFlag, f061_4_2_Cvv2 == "000" || f061_4_2_Cvv2 == "")
+    	$authProduct : AuthProduct()
+    	$logger : Logger()
+   	then	
+   		$logger.debug("# drools-rule:[Ass_006]-V038");
+		result.put( AuthReason.V038, $authProduct.reasonActions.get( AuthReason.V038 ) );
+end
+
+rule "[Ass_007] 辅助验证Pvn检查不支持"
+    when
+		TxnInfo( checkList contains "Ass_007" )
+    	CupMsg( f061_6_AM_PvnCheckFlag )
+    	$authProduct : AuthProduct()
+    	$logger : Logger()	
+    then	
+    	$logger.debug("# drools-rule:[Ass_007]-V039");
+		result.put( AuthReason.V039, $authProduct.reasonActions.get( AuthReason.V039 ) );
+end
+
+rule "[Ass_008] 辅助验证姓名检查未上送"
+    when
+		TxnInfo( checkList contains "Ass_008" )
+    	CupMsg( f061_6_AM_ChbNameCheckFlag, StringUtils.isBlank( f061_6_AM_Name ) )
+    	$authProduct : AuthProduct()
+    	$logger : Logger()	
+    then	
+    	$logger.debug("# drools-rule:[Ass_008]-V040");
+		result.put( AuthReason.V040, $authProduct.reasonActions.get( AuthReason.V040 ) );
+end
+
+rule "[Ass_009] 辅助验证姓名检查不相等"
+    when
+		TxnInfo( checkList contains "Ass_009" )
+    	CupMsg( f061_6_AM_ChbNameCheckFlag, !StringUtils.isBlank( f061_6_AM_Name ) )
+    	TxnInfo( chbNameAMVerifyResult == VerifyResult.Decline )
+    	$authProduct : AuthProduct()
+    	$logger : Logger()	
+    then	
+    	$logger.debug("# drools-rule:[Ass_009]-V041");
+		result.put( AuthReason.V041, $authProduct.reasonActions.get( AuthReason.V041 ) );
+end
+
+rule "[Ass_010] 辅助验证手机号码检查未上送"
+    when
+		TxnInfo( checkList contains "Ass_010" )
+    	CupMsg( f061_6_AM_MobileNbrCheckFlag, StringUtils.isBlank( f061_6_AM_MOBI_NBR ) )
+    	$authProduct : AuthProduct()
+    	$logger : Logger()	
+    then	
+    	$logger.debug("# drools-rule:[Ass_010]-V042");
+		result.put( AuthReason.V042, $authProduct.reasonActions.get( AuthReason.V042 ) );
+end
+
+rule "[Ass_011] 辅助验证手机号码检查不相等"
+    when
+		TxnInfo( checkList contains "Ass_011" )
+    	CupMsg( f061_6_AM_MobileNbrCheckFlag, !StringUtils.isBlank( f061_6_AM_MOBI_NBR ) )
+    	TxnInfo( mobiNbrVerifyResult == VerifyResult.Decline )
+    	$authProduct : AuthProduct()
+    	$logger : Logger()
+   	then	
+   		$logger.debug("# drools-rule:[Ass_011]-V043");
+		result.put( AuthReason.V043, $authProduct.reasonActions.get( AuthReason.V043 ) );
+end
+
+rule "[Ass_012] 辅助验证动态码检查不支持"
+    when
+		TxnInfo( checkList contains "Ass_012" )
+    	CupMsg( f061_6_AM_DynCodeCheckFlag )
+    	$authProduct : AuthProduct()
+    	$logger : Logger()	
+    then	
+    	$logger.debug("# drools-rule:[Ass_012]-V044");
+		result.put( AuthReason.V044, $authProduct.reasonActions.get( AuthReason.V044 ) );
+end
+
+rule "[Ass_013] 辅助验证身份证检查不相等"
+    when
+		TxnInfo( checkList contains "Ass_013" )
+    	CupMsg( f061_6_AM_IDCheckFlag, !StringUtils.isBlank( f061_1_IdNbr ) )
+    	TxnInfo( idNbrVerifyResult == VerifyResult.Decline )
+    	$authProduct : AuthProduct()
+    	$logger : Logger()	
+    then	
+    	$logger.debug("# drools-rule:[Ass_013]-V045");
+		result.put( AuthReason.V045, $authProduct.reasonActions.get( AuthReason.V045 ) );
+end
+
+rule "[Ass_014] 关联交易的账户验证不得上送密码有效期cvv2"
+    when
+		TxnInfo( checkList contains "Ass_014" )
+		TxnInfo( transType == AuthTransType.AcctVerfication )
+		CupMsg( f48AOVerify == null || f48AOVerify not in ( "11" , "12" , "13" ) )
+		not(
+			//密码未上送
+			CupMsg( !exist(52) ) and
+			//cvv2未上送
+			//根据银联离线测试包修改-去掉cvv2检验
+			CupMsg( StringUtils.isBlank( f061_4_2_Cvv2 ) || f061_4_2_Cvv2 == "000" ) and
+			//不存在14域（有效期）
+			CupMsg( !exist(14) )
+		)
+		
+	   	$authProduct : AuthProduct()
+    	$logger : Logger()	
+    then	
+    	$logger.debug("# drools-rule:[Ass_014]-TS03");
+		result.put( AuthReason.TS03, $authProduct.reasonActions.get( AuthReason.TS03 ) );
+end
+
+rule "[Ass_015] 账户验证必须上送辅助验证信息"
+    when
+		TxnInfo( checkList contains "Ass_015" )
+		TxnInfo( transType == AuthTransType.AcctVerfication )
+		//返回姓名和触发动态码的账户验证不需要61域
+		CupMsg( f48AOVerify not in ( "06", "07" , "08" , "15" , "16") )
+		//61域验证信息未上送
+		CupMsg( !exist(61) )
+	   	$authProduct : AuthProduct()
+    	$logger : Logger()	
+    then	
+    	$logger.debug("# drools-rule:[Ass_015]-V046");
+		result.put( AuthReason.V046, $authProduct.reasonActions.get( AuthReason.V046 ) );
+end
+
+rule "[Ass_016] 账户验证上送正确的身份证后6位数字关联订购,不允许上送密码"
+    when
+    	//根据银联离线测试包修改-增加的规则
+		TxnInfo( checkList contains "Ass_016" )
+		TxnInfo( transType == AuthTransType.AcctVerfication )
+		//关联订购
+		CupMsg( f48AOVerify in ( "04" ) )
+		//上送52域
+		CupMsg( exist(52) )
+		//身份证验证正确
+    	TxnInfo( idNbrVerifyResult == VerifyResult.Approve )
+	   	$authProduct : AuthProduct()
+    	$logger : Logger()	
+    then	
+    	$logger.debug("# drools-rule:[Ass_016]-TT03");
+    	//TODO 暂时使用"TT03|不支持账户验证"
+		result.put( AuthReason.TT03, $authProduct.reasonActions.get( AuthReason.TT03 ) );
+end
+
+rule "[Ass_017] 代付手输无密无磁必须上送61域否则拒绝"
+    when
+    	//根据银联离线测试包修改-增加的规则
+		TxnInfo( checkList contains "Ass_017" )
+		TxnInfo( transType == AuthTransType.AgentCredit )
+		CupMsg( f022_1_PosPanEntMode == "01" )
+		//未上送 35,52或61域中不包含AM用法
+		CupMsg( !exist(35) )
+		CupMsg( !exist(52) )
+		CupMsg( !exist(61) )
+	   	$authProduct : AuthProduct()
+    	$logger : Logger()	
+    then	
+    	$logger.debug("# drools-rule:[Ass_017]-V046");
+		result.put( AuthReason.V046, $authProduct.reasonActions.get( AuthReason.V046 ) );
+end
+
+rule "[Ass_018] 建立委托或辅助消费必须上送CVV2和有效期"
+    when
+    	//根据银联离线测试包修改-增加的规则
+		TxnInfo( checkList contains "Ass_018" )
+    	$authProduct : AuthProduct()
+		TxnInfo(( transType == AuthTransType.ContractBuildUp && $authProduct.isSupportVCardSign != null && !$authProduct.isSupportVCardSign ) || (transType in (AuthTransType.Auth, AuthTransType.PreAuth) && authVerifyType == "10"))
+		//未上送 14,cvv2
+		CupMsg( !exist(14) || StringUtils.isBlank( f061_4_2_Cvv2 ) || f061_4_2_Cvv2 == "000" )
+    	$logger : Logger()	
+    then	
+    	$logger.debug("# drools-rule:[Ass_018]-V047");
+		result.put( AuthReason.V047, $authProduct.reasonActions.get( AuthReason.V047 ) );
+end
+
+
+rule "[Ass_019] 批量代付姓名或证件号码后6位必须上送一个"
+    when
+        //根据银联离线测试包修改-增加的规则
+        TxnInfo( checkList contains "Ass_019" )
+        TxnInfo( transType == AuthTransType.AgentCredit )
+        CupMsg( f022_1_PosPanEntMode == "01" )
+         $TxnInfo : TxnInfo()
+        //未上送 35,52或61域中不包含AM用法
+        CupMsg( !exist(35) )
+        CupMsg( !exist(52) )
+        CupMsg( !exist(61) || ((!f061_6_AM_IDCheckFlag || (f061_6_AM_IDCheckFlag && StringUtils.isBlank( f061_1_IdNbr )) ) && ( !f061_6_AM_ChbNameCheckFlag || (f061_6_AM_ChbNameCheckFlag && StringUtils.isBlank( f061_6_AM_Name )))))
+     
+       
+        $authProduct : AuthProduct()
+        $logger : Logger()
+    then
+        $logger.debug("# drools-rule:[Ass_019]-V046");
+                result.put( AuthReason.V046, $authProduct.reasonActions.get( AuthReason.V046 ) );
+end
+
+rule "[Ass_020] 无卡建立委托必须上送CVV2和有效期"
+    when
+        //根据银联离线测试包修改-增加的规则
+        $authProduct : AuthProduct()
+        TxnInfo( checkList contains "Ass_020" )
+        TxnInfo(( transType == AuthTransType.ContractBuildUp && $authProduct.isSupportVCardSign != null && !$authProduct.isSupportVCardSign)|| (transType in (AuthTransType.Auth, AuthTransType.PreAuth) && authVerifyType == "10"))
+        //未上送 14,cvv2i
+        TxnInfo(transMedium == TransMedium.NoCard)
+        CupMsg(!exist(14) || StringUtils.isBlank( f061_4_2_Cvv2 ) || f061_4_2_Cvv2 == "000" )
+        $logger : Logger()
+    then
+        $logger.debug("# drools-rule:[Ass_020]-V047");
+                result.put( AuthReason.V047, $authProduct.reasonActions.get( AuthReason.V047 ) );
+end
+
+rule "[Ass_021] 有卡建立委托或辅助消费验证密码是否存在"
+    when
+        //根据银联离线测试包修改-增加的规则
+        $authProduct : AuthProduct()
+        TxnInfo( checkList contains "Ass_021" )
+        TxnInfo(transType == AuthTransType.ContractBuildUp && $authProduct.isSupportVCardSign != null && !$authProduct.isSupportVCardSign)
+        //未上送 14,cvv2i
+        TxnInfo(transMedium != TransMedium.NoCard)
+        CupMsg(!exist(52))
+        $logger : Logger()
+    then
+        $logger.debug("# drools-rule:[Ass_021]-V033");
+                result.put( AuthReason.V033, $authProduct.reasonActions.get( AuthReason.V033 ) );
+end
+
+rule "[Ass_022] 银联无卡自助自主/辅助模式下消费/预授权交易必须上送有效期"
+    when
+    	//AIC2.7银联升级-新增规则
+        $authProduct : AuthProduct()
+        TxnInfo( checkList contains "Ass_022" )
+	   	TxnInfo( inputSource == InputSource.CUP )
+	   	TxnInfo( autoType == AutoType.NoCardSelfService )
+        TxnInfo( transType in (AuthTransType.Auth, AuthTransType.PreAuth) )
+		TxnInfo( authVerifyType in ("10","09") )
+        CupMsg( !exist(14) )
+        $logger : Logger()
+    then
+        $logger.debug("# drools-rule:[Ass_022]-V034");
+        result.put( AuthReason.V034, $authProduct.reasonActions.get( AuthReason.V034 ) );
+end
+
+rule "[Ass_023] 银联无卡自助自主模式下消费/预授权交易必须上送动态验证码或通讯号码"
+    when
+    	//AIC2.7银联升级-新增规则
+        $authProduct : AuthProduct()
+        TxnInfo( checkList contains "Ass_023" )
+	  	TxnInfo(inputSource == InputSource.CUP )
+	   	TxnInfo( autoType == AutoType.NoCardSelfService )
+        TxnInfo(transType in (AuthTransType.Auth, AuthTransType.PreAuth) )
+		TxnInfo(authVerifyType == "09" )
+        CupMsg(StringUtils.isBlank(f061_6_AM_MOBI_NBR) ,StringUtils.isBlank(f061_6_AM_DYN_CODE))
+        $logger : Logger()
+    then
+        $logger.debug("# drools-rule:[Ass_023]-V046");
+        result.put( AuthReason.V046, $authProduct.reasonActions.get( AuthReason.V046 ) );
+end
+
+rule "[Ass_024] 银联moto类消费/预授权交易必须上送有效期"
+    when
+   	 	//AIC2.7银联升级-新增规则
+        $authProduct : AuthProduct()
+        TxnInfo( checkList contains "Ass_024" )
+	   	TxnInfo(inputSource == InputSource.CUP )
+	   	TxnInfo(transTerminal in (AuthTransTerminal.PHT ,AuthTransTerminal.PHE) )
+        TxnInfo(transType in (AuthTransType.Auth, AuthTransType.PreAuth))
+        CupMsg(!exist(14))
+        $logger : Logger()
+    then
+        $logger.debug("# drools-rule:[Ass_024]-V034");
+        result.put( AuthReason.V034, $authProduct.reasonActions.get( AuthReason.V034 ) );
+end
+
+
+
+
+
+

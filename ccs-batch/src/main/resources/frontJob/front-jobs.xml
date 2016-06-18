@@ -1,0 +1,178 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<beans default-lazy-init="false"
+	xmlns:p="http://www.springframework.org/schema/p"
+	xmlns="http://www.springframework.org/schema/beans"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:util="http://www.springframework.org/schema/util"
+	xmlns:jee="http://www.springframework.org/schema/jee"
+	xmlns:jms="http://www.springframework.org/schema/jms"
+	xmlns:batch="http://www.springframework.org/schema/batch"
+	xmlns:task="http://www.springframework.org/schema/task"
+	xsi:schemaLocation="http://www.springframework.org/schema/jee http://www.springframework.org/schema/jee/spring-jee-3.1.xsd
+		http://www.springframework.org/schema/jms http://www.springframework.org/schema/jms/spring-jms-3.1.xsd
+		http://www.springframework.org/schema/task http://www.springframework.org/schema/task/spring-task-3.2.xsd
+		http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.1.xsd
+		http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util-3.1.xsd
+		http://www.springframework.org/schema/batch http://www.springframework.org/schema/batch/spring-batch.xsd
+		http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-3.1.xsd">
+
+
+	<!-- 导入步骤定义 -->
+	<import resource="front-steps.xml" />
+	
+	<!-- 批量步骤模版，目前用于定义一组listener -->
+	<batch:step id="stepTemplate" abstract="true">
+		<batch:listeners>
+			<batch:listener ref="acmBatchStatusListener" />
+			<batch:listener>
+				<bean class="com.sunline.ark.batch.DebugSupportListener"/>
+			</batch:listener>
+		</batch:listeners>
+	</batch:step>
+	
+	<batch:job id="ccsFrontJob" >
+		<batch:listeners>
+			<batch:listener ref="acmBatchStatusListener" />
+		</batch:listeners>
+		<batch:validator>
+			<bean class="com.sunline.acm.service.sdk.BatchDateJobParametersValidator"/>
+		</batch:validator>
+		
+		<!-- 等待并下载PTP扣款文件 -->
+ 		<batch:step parent="stepTemplate" id="resp-file-wait-down" next="front-file-wait">
+			<batch:tasklet ref="respFileWaitDown" />
+		</batch:step>
+		
+		<!-- 等待文件 -->
+		<batch:step parent="stepTemplate" id="front-file-wait" next="s1000-normal-payment">
+			<batch:tasklet ref="frontFileWait" />
+		</batch:step>
+		
+		<!-- 正常代扣 -->
+		<batch:step parent="stepTemplate" id="s1000-normal-payment" next="s1100-mctnormal-payment">
+		<batch:partition partitioner="r1000">
+			<batch:handler grid-size="#{env['GridSize'] ?: 16}" task-executor="asyncTaskExecutor"/>
+				<batch:step parent="stepTemplate">
+				<batch:tasklet>
+					<batch:chunk reader="r1000" processor="p1000" writer="w1000" commit-interval="#{env['frontCommitInterval'] ?: 100}" />
+				</batch:tasklet>
+			</batch:step>
+			</batch:partition>
+		</batch:step>
+		
+		<batch:step parent="stepTemplate" id="s1100-mctnormal-payment" next="s6000-ptp-payment">
+		<batch:partition partitioner="r1100">
+			<batch:handler grid-size="#{env['GridSize'] ?: 16}" task-executor="asyncTaskExecutor"/>
+				<batch:step parent="stepTemplate">
+				<batch:tasklet>
+					<batch:chunk reader="r1100" processor="p1100" writer="w1100" commit-interval="#{env['frontCommitInterval'] ?: 100}" />
+				</batch:tasklet>
+			</batch:step>
+			</batch:partition>
+		</batch:step>
+		
+		<!-- PTP扣款 -->
+		<batch:step parent="stepTemplate" id="s6000-ptp-payment" next="s2000-overdue-payment">
+		<batch:partition partitioner="r6000">
+			<batch:handler grid-size="#{env['GridSize'] ?: 16}" task-executor="asyncTaskExecutor"/>
+				<batch:step parent="stepTemplate">
+				<batch:tasklet>
+					<batch:chunk reader="r6000" processor="p6000" writer="w6000" commit-interval="#{env['frontCommitInterval'] ?: 100}" />
+				</batch:tasklet>
+			</batch:step>
+		</batch:partition>
+		</batch:step>
+		
+		<!-- <batch:step parent="stepTemplate"  id="s6000-ptp-payment" next="s2000-overdue-payment">
+			<batch:description>PTP扣款</batch:description>
+			<batch:tasklet>
+				<batch:chunk reader="r6000" processor="p6000" writer="w6000"  commit-interval="#{env['commitInterval'] ?: 100}" />
+			</batch:tasklet>
+		</batch:step> -->
+		
+		<!-- 逾期代扣 -->
+		<batch:step parent="stepTemplate" id="s2000-overdue-payment" next="s2100-mctoverdue-payment">
+		<batch:partition partitioner="r2000">
+			<batch:handler grid-size="#{env['GridSize'] ?: 16}" task-executor="asyncTaskExecutor"/>
+				<batch:step parent="stepTemplate">
+				<batch:tasklet>
+					<batch:chunk reader="r2000" processor="p2000" writer="w2000" commit-interval="#{env['frontCommitInterval'] ?: 100}" />
+				</batch:tasklet>
+				</batch:step>
+			</batch:partition>
+		</batch:step>
+		
+		<batch:step parent="stepTemplate" id="s2100-mctoverdue-payment" next="s3000-prepayment">
+		<batch:partition partitioner="r2100">
+			<batch:handler grid-size="#{env['GridSize'] ?: 16}" task-executor="asyncTaskExecutor"/>
+				<batch:step parent="stepTemplate">
+				<batch:tasklet>
+					<batch:chunk reader="r2100" processor="p2100" writer="w2100" commit-interval="#{env['frontCommitInterval'] ?: 100}" />
+				</batch:tasklet>
+			</batch:step>
+			</batch:partition>
+		</batch:step>
+		
+		<!-- 提前还款代扣 -->
+		<batch:step parent="stepTemplate" id="s3000-prepayment" next="s4000-claim">
+		<batch:partition partitioner="r3000">
+			<batch:handler grid-size="#{env['GridSize'] ?: 16}" task-executor="asyncTaskExecutor"/>
+				<batch:step parent="stepTemplate">
+			<batch:tasklet>
+				<batch:chunk reader="r3000" processor="p3000" writer="w3000" commit-interval="#{env['frontCommitInterval'] ?: 100}" />
+			</batch:tasklet>
+			</batch:step>
+			</batch:partition>
+		</batch:step>
+		
+		<!-- 理赔代扣 -->
+		<batch:step parent="stepTemplate" id="s4000-claim" next="s5000-subrogation">
+		<batch:partition partitioner="r4000">
+			<batch:handler grid-size="#{env['GridSize'] ?: 16}" task-executor="asyncTaskExecutor"/>
+				<batch:step parent="stepTemplate">
+			<batch:tasklet>
+				<batch:chunk reader="r4000" processor="p4000" writer="w4000" commit-interval="#{env['frontCommitInterval'] ?: 100}" />
+			</batch:tasklet>
+		</batch:step>
+		</batch:partition>
+		</batch:step>
+		
+		<!-- 追偿代扣 -->
+		<batch:step parent="stepTemplate" id="s5000-subrogation" next="s8000-gather-claim">
+		<batch:partition partitioner="r5000">
+			<batch:handler grid-size="#{env['GridSize'] ?: 16}" task-executor="asyncTaskExecutor"/>
+				<batch:step parent="stepTemplate">
+			<batch:tasklet>
+				<batch:chunk reader="r5000" processor="p5000" writer="w5000" commit-interval="#{env['frontCommitInterval'] ?: 100}" />
+			</batch:tasklet>
+			</batch:step>
+			</batch:partition>
+		</batch:step>
+		
+		<!-- 汇总理赔订单 -->
+		<batch:step parent="stepTemplate" id="s8000-gather-claim" next="s9000-generate-file">
+			<batch:tasklet ref="gatherClaimOrder" />
+		</batch:step>
+		
+		<!-- 生成代扣文件 -->
+		<batch:step parent="stepTemplate" id="s9000-generate-file" next="s9100-generate-disburse-file" >
+			<batch:tasklet>
+				<batch:chunk reader="r9000" processor="p9000" writer="w9000" commit-interval="#{env['frontCommitInterval'] ?: 100}" />
+			</batch:tasklet>
+		</batch:step>
+		
+		<!-- 生成代付文件 -->
+		<batch:step parent="stepTemplate" id="s9100-generate-disburse-file" next="s9100-transfer-file" >
+			<batch:tasklet>
+				<batch:chunk reader="r9100" processor="p9100" writer="w9100" commit-interval="#{env['frontCommitInterval'] ?: 100}" />
+			</batch:tasklet>
+		</batch:step>
+		
+		<!-- ftp转移代扣文件 -->
+		<batch:step parent="stepTemplate" id="s9100-transfer-file">
+			<batch:tasklet ref="frontTransferFile" />
+		</batch:step>
+		
+	</batch:job>
+</beans>

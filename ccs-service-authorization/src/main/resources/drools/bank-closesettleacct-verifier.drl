@@ -1,0 +1,54 @@
+package com.sunline.ccs.service.auth.verifier
+
+import java.util.Map;
+import com.sunline.ccs.param.def.enums.AuthReason;
+import com.sunline.ccs.param.def.AuthProduct;
+import com.sunline.ccs.param.def.MerchantTxnCrtl;
+import com.sunline.ppy.dictionary.enums.Indicator;
+import com.sunline.ccs.param.def.enums.CheckType;
+import com.sunline.ppy.dictionary.enums.AuthTransType;
+import com.sunline.ccs.param.def.enums.AuthTransTerminal;
+import com.sunline.ccs.service.auth.context.TxnInfo;
+import com.sunline.ccs.infrastructure.shared.model.CcsAcctO;
+import org.apache.commons.lang.StringUtils;
+
+import org.slf4j.Logger;global Map<AuthReason, AuthAction> result;
+
+rule "[Csa_001] 校验账户是否包含非待销户账户锁定码"
+	/*
+	*	锁定码中没有包含"C"(L002)
+	*/
+    when
+		TxnInfo( checkList contains "Csa_001" )
+		CcsAcctO( StringUtils.isBlank(blockCode)) or
+		CcsAcctO( StringUtils.isNotBlank(blockCode) , blockCode.indexOf("C") < 0 )
+		$authProduct : AuthProduct()
+    	$logger : Logger()	
+    then	
+    	$logger.debug("# drools-rule:[Csa_001]-TT06");
+		result.put( AuthReason.TT06, $authProduct.reasonActions.get(AuthReason.TT06) );
+end
+
+rule "[Csa_002] 校验结清金额是否正确"
+	/*
+	*	结清转出金额或取现金额必须等于剩余balance,且memocr,memodb均为0 (通过)
+	*/
+    when
+		TxnInfo( checkList contains "Csa_002" )
+		CcsAcctO( $currBal : currBal )
+		CcsAcctO( $memoCr : memoCr )
+		CcsAcctO( $memoDb : memoDb )
+		TxnInfo( $chbTransAmt : chbTransAmt.negate() )
+		TxnInfo( $chbTransAmt != $currBal || $memoCr != 0 || $memoDb != 0)
+		$authProduct : AuthProduct()
+    	$logger : Logger()	
+    then	
+    	$logger.debug("# drools-rule:[Gen_002]-TT07");
+		$logger.debug("# drools-rule:[Gen_002] 检查销户结清金额条件:当前交易金额=销户结清金额,未匹配借记贷记金额 != 0");
+		$logger.debug("# drools-rule:[Gen_002] 当前交易金额:" + $chbTransAmt );
+		$logger.debug("# drools-rule:[Gen_002] 销户结清金额:" + $currBal );
+		$logger.debug("# drools-rule:[Gen_002] 未匹配借记金额:" + $memoCr );
+		$logger.debug("# drools-rule:[Gen_002] 未匹配贷记金额:" + $memoDb );
+		result.put( AuthReason.TT07, $authProduct.reasonActions.get(AuthReason.TT07) );
+		
+end

@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:p="http://www.springframework.org/schema/p"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.1.xsd">
+
+	<!-- 翼支付提款还款报表 -->
+	<bean id="resA232YZFTransactionFlowFile" class="com.sunline.ark.batch.ResourceFactoryBean" scope="step">
+		<description>翼支付提款还款报表</description>
+		<property name="resource" value="file:#{env.batchWorkDir}/#{new java.text.SimpleDateFormat('yyyyMMdd').format(batchStatusFacility.getBatchDate())}/moneyTrade_Checking_#{new java.text.SimpleDateFormat('yyyy-MM-dd').format(batchStatusFacility.getBatchDate())}" />
+	</bean>
+</beans>

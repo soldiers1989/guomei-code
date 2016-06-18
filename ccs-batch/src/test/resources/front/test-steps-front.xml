@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+	
+	<!-- =======================================ptp接口修改  start======================================= -->
+	<bean id="r6000" class="com.sunline.ark.batch.YakJsonFileItemReader" scope="step">
+		<property name="fileDetailClass"
+			value="com.sunline.ccs.batch.front.SPtpBatchCutFile" />
+		<property name="resource" ref="resS6000PtpPaymentFile" />
+	</bean>
+	<bean id="p6000" class="com.sunline.ccs.batch.front.P6000PTPayment" scope="step" />
+	<bean id="w6000" class="com.sunline.ark.batch.NullItemWriter" scope="step" />
+	<!-- =======================================ptp接口修改  end  ======================================= -->
+	
+</beans>

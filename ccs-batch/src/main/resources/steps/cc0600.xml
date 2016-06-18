@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+
+	<bean id="r600Reader" class="com.sunline.ccs.batch.cc0600.P600LoadKeys" scope="step"/>
+
+	<bean id="p600Processor" class="com.sunline.ccs.batch.cc0600.P600SaveTransFlow" scope="step"/>
+
+	<bean id="w600Writer" class="com.sunline.ark.batch.YakPartitionFileItemWriter" scope="step">
+		<property name="resource" ref="resCcsTranFlow"/>
+		<property name="fileDetailClass" value="com.sunline.ppy.dictionary.exchange.TpsTranFlow"/>
+	</bean>
+	
+	<bean id="t0600FileMerger" class="com.sunline.ark.batch.FileMergerTasklet">
+		<property name="taskExecutor" ref="asyncTaskExecutor"/>
+		<property name="pollInterval" value="#{env['pollInterval']?:2000}" />
+		<property name="resources" >
+			<list>
+				<ref bean="resCcsTranFlow" />
+			</list>
+		</property>
+	</bean>
+
+	<!-- <bean id="w600Writer" class="com.sunline.acm.service.sdk.BatchFileWriter" scope="step">
+		<property name="fileDetailClass" value="com.sunline.ppy.dictionary.exchange.TpsTranFlow"/>
+		<property name="filename" value="CcsTranFlow"/>
+	</bean>
+	
+
+	<bean id="e600Exporter" class="com.sunline.fps.service.sdk.batch.DbFileExporter" scope="step">
+	    <property name="instanceName" value="#{env.instanceName}" />
+	    <property name="systemType" value="CCS" />
+		<property name="filenames">
+			<list>
+				<value>CcsTranFlow</value>
+			</list>
+		</property>
+	</bean> -->
+	
+</beans>

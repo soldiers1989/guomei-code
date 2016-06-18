@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<beans default-lazy-init="false"
+	xmlns:p="http://www.springframework.org/schema/p"
+	xmlns="http://www.springframework.org/schema/beans"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:util="http://www.springframework.org/schema/util"
+	xmlns:jee="http://www.springframework.org/schema/jee"
+	xmlns:jms="http://www.springframework.org/schema/jms"
+	xmlns:batch="http://www.springframework.org/schema/batch"
+	xsi:schemaLocation="http://www.springframework.org/schema/jee http://www.springframework.org/schema/jee/spring-jee-3.1.xsd
+		http://www.springframework.org/schema/jms http://www.springframework.org/schema/jms/spring-jms-3.1.xsd
+		http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.1.xsd
+		http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util-3.1.xsd
+		http://www.springframework.org/schema/batch http://www.springframework.org/schema/batch/spring-batch.xsd
+		http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-3.1.xsd">
+
+	<!-- 占位符 -->
+	<bean id="env" class="org.springframework.beans.factory.config.PropertiesFactoryBean">
+		<property name="locations" value="#{systemProperties['env.files'] ?: 'classpath:/dev/*.properties'}"/>
+	</bean>
+	
+	<bean id='jobLauncher' class="org.springframework.batch.core.launch.support.SimpleJobLauncher">
+		<property name="jobRepository" ref="jobRepository"/>
+	</bean>
+	
+	<bean class="org.springframework.batch.test.JobLauncherTestUtils"/>	
+	
+	<bean id="managementServiceMock" class="com.sunline.acm.service.sdk.GlobalManagementServiceMock"/>
+	<bean id="batchStatusFacility" class="com.sunline.acm.service.sdk.BatchStatusFacility"/>
+	<bean id="parameterServiceMock" class="com.sunline.pcm.service.sdk.ParameterServiceMock"/>
+	<bean id="unifiedParameterFacility" class="com.sunline.pcm.service.sdk.UnifiedParameterFacility">
+		<property name="unifiedParameterService" ref="parameterServiceMock"/>
+	</bean>
+	<!-- 批量调额文件 -->
+	<bean id="resS8501LimitAdj" class="com.sunline.ark.batch.ResourceFactoryBean" scope="step">
+		<description>批量调额文件</description>
+		<property name="resource" value="file:#{env.batchWorkDir}/#{new java.text.SimpleDateFormat('yyyyMMdd').format(batchStatusFacility.getBatchDate())}/acctBatchLimitAdjIn" />
+	</bean>
+	
+	<!-- 导入批量定义，通过配置力争使测试中的定义与实际定义完全一致，避免因为维护两套定义造成的问题 -->
+	<import resource="test-jobs-cc8500.xml"/>
+	
+	<batch:job-repository id="jobRepository" isolation-level-for-create="DEFAULT" data-source="dataSource"/>
+	
+	<!-- HSQl内存数据库版的JPA定久 -->
+	<import resource="../test-jpa.xml"/>
+	
+</beans>

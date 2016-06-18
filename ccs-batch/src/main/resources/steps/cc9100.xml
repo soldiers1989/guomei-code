@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+
+	<bean id="r9101" class="com.sunline.ccs.batch.cc9100.R9101PBOC" scope="step"/>
+
+	<bean id="p9101" class="com.sunline.ccs.batch.cc9100.P9101PBOC" scope="step"/>
+	
+	<!-- <bean id="w9101" class="com.sunline.acm.service.sdk.BatchFileWriter" scope="step">
+		<description>人行征信报文</description>
+		<property name="fileDetailClass" value="com.sunline.ppy.dictionary.report.ccs.T9002ToPBOCRptItem"/>
+		<property name="filename" value="S910001PBOC"/>
+	</bean> -->
+	
+	<bean id="w9101" class="com.sunline.ark.batch.YakFileItemWriter" scope="step">
+		<description>人行征信报文</description>
+		<property name="fileDetailClass" value="com.sunline.ppy.dictionary.report.ccs.T9002ToPBOCRptItem"/>
+		<property name="resource" ref="resS910001PBOC"/>
+	</bean>
+	<bean id="r9102" class="com.sunline.ccs.batch.cc9100.R9102PBOC" scope="step"/>
+
+	<bean id="p9102" class="com.sunline.ccs.batch.cc9100.P9102PBOC" scope="step"/>
+	
+	<!-- <bean id="w9102" class="com.sunline.acm.service.sdk.BatchFileWriter" scope="step">
+		<description>贷款人行征信报文</description>
+		<property name="fileDetailClass" value="com.sunline.ppy.dictionary.report.ccs.T9002ToPBOCRptItem"/>
+		<property name="filename" value="S910002PBOC"/>
+	</bean> -->
+	
+	<bean id="w9102" class="com.sunline.ark.batch.YakFileItemWriter" scope="step">
+		<description>贷款人行征信报文</description>
+		<property name="fileDetailClass" value="com.sunline.ppy.dictionary.report.ccs.T9002ToPBOCRptItem"/>
+		<property name="resource" ref="resS910002PBOC"/>
+	</bean>
+	
+	<bean id="r9103" class="com.sunline.ccs.batch.cc9100.R9103PBOC" scope="step"/>
+
+	<bean id="p9103" class="com.sunline.ccs.batch.cc9100.P9103PBOC" scope="step"/>
+	
+	<!-- <bean id="w9103" class="com.sunline.acm.service.sdk.BatchFileWriter" scope="step">
+		<description>人行征信报文(1.2)</description>
+		<property name="fileDetailClass" value="com.sunline.ppy.dictionary.report.ccs.T9002ToPBOCRptItem"/>
+		<property name="filename" value="S910003PBOC"/>
+	</bean> -->
+	
+	<bean id="w9103" class="com.sunline.ark.batch.YakFileItemWriter" scope="step">
+		<description>人行征信报文(1.2)</description>
+		<property name="fileDetailClass" value="com.sunline.ppy.dictionary.report.ccs.T9002ToPBOCRptItem"/>
+		<property name="resource" ref="resS910003PBOC"/>
+	</bean>
+	
+	<!-- <bean id="e9101" class="com.sunline.fps.service.sdk.batch.DbFileExporter" scope="step">
+	    <property name="instanceName" value="#{env.instanceName}" />
+	    <property name="systemType" value="CCS" />
+	    <property name="filenames">
+			<list>
+				<value>S910001PBOC</value>
+				<value>S910002PBOC</value>
+				<value>S910003PBOC</value>
+			</list>
+		</property>
+	</bean> -->
+	
+</beans>

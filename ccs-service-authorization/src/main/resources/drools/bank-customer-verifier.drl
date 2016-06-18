@@ -1,0 +1,36 @@
+package com.sunline.ccs.service.authroization
+ 
+import java.util.Map;
+import com.sunline.ccs.param.def.enums.AuthReason;
+import com.sunline.ccs.param.def.enums.AuthAction;
+import com.sunline.ccs.param.def.AuthProduct;
+import com.sunline.ppy.dictionary.enums.InputSource;
+import com.sunline.ppy.dictionary.enums.AuthTransType;
+import com.sunline.ccs.service.auth.context.TxnInfo;
+import com.sunline.ccs.service.auth.context.CupMsg;
+import com.sunline.ppy.dictionary.enums.VerifyResult;
+import org.apache.commons.lang.StringUtils;
+import org.slf4j.Logger;
+global Map<AuthReason, AuthAction> result;
+
+/**
+ *  行内交易客户需求校验项
+ *  @since 2.5.0
+ */
+
+rule "[Cust_001] 转账还款收款人姓名校验"
+	
+	when  
+		TxnInfo( checkList contains "Cust_001" )
+		TxnInfo( inputSource == InputSource.BANK )
+		TxnInfo( transType == AuthTransType.Credit 
+					|| transType == AuthTransType.AgentCredit 
+					|| transType == AuthTransType.TransferCredit )
+    	CupMsg( StringUtils.isNotBlank( f048_ReceiverName_Bank ) )
+    	TxnInfo( chbReceiverNameFromBankVerifyResult == VerifyResult.Decline )
+    	$authProduct : AuthProduct()
+		$logger : Logger()	
+	then	
+		$logger.debug("# drools-rule:[Cust_001]-V041");
+		result.put( AuthReason.V041, $authProduct.reasonActions.get( AuthReason.V041 ) );
+end

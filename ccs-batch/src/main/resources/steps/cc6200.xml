@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+
+	<bean id="r6201" class="com.sunline.ccs.batch.cc6200.R6201StmtReprint" scope="step"/>
+
+	<bean id="p6201" class="com.sunline.ccs.batch.cc6200.P6201StmtReprint" scope="step"/>
+	
+	<!-- <bean id="w6201StmttxnInterface" class="com.sunline.acm.service.sdk.BatchFileWriter" scope="step">
+		<description>账单交易明细文件</description>
+		<property name="fileDetailClass" value="com.sunline.ppy.dictionary.exchange.StmttxnInterfaceItem"/>
+		<property name="filename" value="S680001ReprintStmttxn"/>
+	</bean>
+	
+	<bean id="w6201StmtInterface" class="com.sunline.acm.service.sdk.BatchFileWriter" scope="step">
+		<description>账单汇总文件</description>
+		<property name="fileDetailClass" value="com.sunline.ppy.dictionary.exchange.StmtInterfaceItem"/>
+		<property name="filename" value="S680002ReprintStmt"/>
+	</bean> -->
+	
+	<bean id="w6201StmttxnInterface" class="com.sunline.ark.batch.YakFileItemWriter" scope="step">
+		<description>账单交易明细文件</description>
+		<property name="fileDetailClass" value="com.sunline.ppy.dictionary.exchange.StmttxnInterfaceItem"/>
+		<property name="resource" ref="resS680001ReprintStmttxn"/>
+	</bean>
+	<bean id="w6201StmtInterface" class="com.sunline.ark.batch.YakFileItemWriter" scope="step">
+		<description>账单汇总文件</description>
+		<property name="fileDetailClass" value="com.sunline.ppy.dictionary.exchange.StmtInterfaceItem"/>
+		<property name="resource" ref="resS680002ReprintStmt"/>
+	</bean>
+	
+	
+	<bean id="w6201" class="com.sunline.ark.batch.PropertyDelegateWriter" scope="step">
+		<property name="writers">
+			<map>
+				<entry key="stmttxnInterfaceItems" value-ref="w6201StmttxnInterface"/>
+				<entry key="stmtInterfaceItems" value-ref="w6201StmtInterface"/>
+			</map>
+		</property>
+	</bean>
+	
+	<!-- <bean id="e6201" class="com.sunline.fps.service.sdk.batch.DbFileExporter" scope="step">
+	    <property name="instanceName" value="#{env.instanceName}" />
+	    <property name="systemType" value="CCS" />
+	    <property name="filenames">
+	    	<list>
+				<value>S680001ReprintStmttxn</value>
+				<value>S680002ReprintStmt</value>
+			</list>
+		</property>
+	</bean> -->
+</beans>

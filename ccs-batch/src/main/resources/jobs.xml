@@ -1,0 +1,693 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<beans default-lazy-init="false"
+	xmlns:p="http://www.springframework.org/schema/p"
+	xmlns="http://www.springframework.org/schema/beans"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:util="http://www.springframework.org/schema/util"
+	xmlns:jee="http://www.springframework.org/schema/jee"
+	xmlns:jms="http://www.springframework.org/schema/jms"
+	xmlns:batch="http://www.springframework.org/schema/batch"
+	xmlns:task="http://www.springframework.org/schema/task"
+	xsi:schemaLocation="http://www.springframework.org/schema/jee http://www.springframework.org/schema/jee/spring-jee-3.1.xsd
+		http://www.springframework.org/schema/jms http://www.springframework.org/schema/jms/spring-jms-3.1.xsd
+		http://www.springframework.org/schema/task http://www.springframework.org/schema/task/spring-task-3.2.xsd
+		http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.1.xsd
+		http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util-3.1.xsd
+		http://www.springframework.org/schema/batch http://www.springframework.org/schema/batch/spring-batch.xsd
+		http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-3.1.xsd">
+
+	
+	
+	<import resource="ftp-steps.xml" />
+	<!-- 导入步骤定义 -->
+	<import resource="steps/beforeTruncate.xml" />
+	<import resource="steps/resp-file.xml"/>
+	<import resource="steps/file-wait.xml"/>
+	<import resource="steps/cc0600.xml" />
+	<import resource="steps/cc1000.xml" />
+	<import resource="steps/cc1300.xml" />
+	<import resource="steps/cc1400.xml" />
+	<import resource="steps/cc1500.xml" />
+	<import resource="steps/cc2000.xml" />
+	<import resource="steps/cc2100.xml" />
+	<import resource="steps/cc2200.xml" />
+	<import resource="steps/cc3000.xml" />
+	<import resource="steps/cc3100.xml" />
+	<import resource="steps/cc5000.xml" />
+	<import resource="steps/cc6000.xml" />
+	<import resource="steps/cc6100.xml" />
+	<import resource="steps/cc7000.xml" />
+	<import resource="steps/cc8000.xml" />
+	<import resource="steps/cc8100.xml" />
+	<import resource="steps/cc8200.xml" />
+	<import resource="steps/cc8300.xml" />
+	<import resource="steps/cc8400.xml" />
+	<import resource="steps/cc9000.xml" />
+	<import resource="steps/cc9100.xml" />
+	<import resource="steps/cca100.xml" />
+	<import resource="steps/cca300.xml" />
+	<import resource="steps/cca400.xml" />
+	<import resource="steps/cca900.xml" />
+	<import resource="steps/rptStart.xml"/>
+	
+
+	<!-- 批量步骤模版，目前用于定义一组listener -->
+	<batch:step id="stepTemplate" abstract="true">
+		<batch:listeners>
+			<batch:listener ref="acmBatchStatusListener" />
+			<batch:listener>
+				<bean class="com.sunline.ark.batch.DebugSupportListener"/>
+			</batch:listener>
+<!-- 			<batch:listener> -->
+<!-- 				<bean class="com.sunline.ccs.batch.common.JobExecuteConfListener" /> -->
+<!-- 			</batch:listener> -->
+		</batch:listeners>
+	</batch:step>
+
+	<!-- 用于支持并发批量的线程池 -->
+	<task:executor id="asyncTaskExecutor" pool-size="#{env['batchTaskPoolSize'] ?: 32}"/>
+	
+	<!-- 导入小批量 -->
+	<import resource="frontJob/front-jobs.xml" />
+	<!-- 导入报表批量 -->
+	<import resource="rptJob/rpt-jobs.xml"/>
+	
+	<batch:job id="ccsJob" >
+		<batch:listeners>
+			<batch:listener ref="acmBatchStatusListener" />
+		</batch:listeners>
+		<batch:validator>
+			<bean class="com.sunline.acm.service.sdk.BatchDateJobParametersValidator"/>
+		</batch:validator>
+		
+		<!-- 批前临时表清理 -->
+		<batch:step parent="stepTemplate" id="before-clean-table" next="resp-file-wait">
+			<batch:tasklet ref="beforeTruncate" />
+		</batch:step>
+		
+		<!-- 等待并下载回盘文件 -->
+ 		<batch:step parent="stepTemplate" id="resp-file-wait" next="resp-file-down">
+			<batch:tasklet ref="respFileWait" />
+		</batch:step>
+		<batch:step parent="stepTemplate" id="resp-file-down" next="resp-file-wait-merchant">
+			<batch:tasklet ref="respFileDownload" />
+		</batch:step>
+		
+		<!-- 等待并下载回盘文件 - 商户ftp -->
+ 		<batch:step parent="stepTemplate" id="resp-file-wait-merchant" next="resp-file-down-merchant">
+			<batch:tasklet ref="respMerchantFileWait" />
+		</batch:step>
+		<batch:step parent="stepTemplate" id="resp-file-down-merchant" next="file-wait">
+			<batch:tasklet ref="respMerchantFileDownload" />
+		</batch:step>
+		
+		<!-- 等待文件 -->
+		<batch:step parent="stepTemplate" id="file-wait" next="cc1331">
+			<batch:tasklet ref="fileWait" />
+		</batch:step>
+		
+		<batch:step parent="stepTemplate" id="cc1331" next="cc1341">
+			<batch:tasklet>
+				<batch:chunk reader="r1331" processor="p1331" writer="w1331"  commit-interval="#{env['commitInterval'] ?: 100}" />
+			</batch:tasklet> 
+		</batch:step>
+		
+		<batch:step parent="stepTemplate" id="cc1341" next="cc1401">
+			<batch:tasklet>
+				<batch:chunk reader="r1341" processor="p1341" writer="w1341"  commit-interval="#{env['commitInterval'] ?: 100}" />
+			</batch:tasklet> 
+		</batch:step>
+		
+		<!-- 马上流水对账 -->
+		<batch:step id="cc1401" next="cc1402">
+			<batch:description>马上对账流水文件代付代扣文件合并</batch:description>
+			<batch:tasklet ref="p1401PreMergeTransFlow" />
+		</batch:step>
+		
+		<batch:step id="cc1402" next="cc1402FileMerger" >
+			<batch:description>马上流水对账 - 出成功报表、马上流水异常报表</batch:description>
+			<batch:tasklet>
+				<batch:chunk reader="r1402" processor="p1402" writer="w1402"  commit-interval="#{env['commitInterval'] ?: 100}" />
+			</batch:tasklet>
+		</batch:step>
+		
+		<batch:step id="cc1402FileMerger" next="cc1403">
+			<batch:tasklet ref="t1402FileMerger" />
+		</batch:step>
+		
+		<batch:step id="cc1403" next="cc1403FileMerger">
+			<batch:description>马上流水对账 - 出订单未匹配报表</batch:description>
+			<batch:partition partitioner="r1403">
+				<batch:handler grid-size="#{env['GridSize'] ?: 16}" task-executor="asyncTaskExecutor"/>
+				<batch:step>
+					<batch:tasklet>
+						<batch:chunk reader="r1403" writer="w1403"  commit-interval="#{env['commitInterval'] ?: 100}" />
+					</batch:tasklet>
+				</batch:step>
+			</batch:partition>
+		</batch:step>
+		
+		<batch:step id="cc1403FileMerger" next="cc1403MatchErrMerge">
+			<batch:tasklet ref="t1403FileMerger" />
+		</batch:step>
+		
+		<batch:step id="cc1403MatchErrMerge" next="cc1404">
+			<batch:description>合并对账异常文件</batch:description>
+			<batch:tasklet ref="t1403MergeMatchErrRpt" />
+		</batch:step>
+		
+<!-- 		<batch:step id="cc1406" next="cc1406FileMerger" >
+			<batch:description>商户平台对账 - 出成功报表、马上流水异常报表</batch:description>
+			<batch:tasklet>
+				<batch:chunk reader="r1406" processor="p1406" writer="w1406"  commit-interval="#{env['commitInterval'] ?: 100}" />
+			</batch:tasklet>
+		</batch:step>
+		
+		<batch:step id="cc1406FileMerger" next="cc1407">
+			<batch:tasklet ref="t1406FileMerger" />
+		</batch:step>
+		
+		<batch:step id="cc1407" next="cc1407FileMerger">
+			<batch:description>商户对账 - 出订单未匹配报表</batch:description>
+			<batch:partition partitioner="r1407">
+				<batch:handler grid-size="#{env['GridSize'] ?: 16}" task-executor="asyncTaskExecutor"/>
+				<batch:step>
+					<batch:tasklet>
+						<batch:chunk reader="r1407" writer="w1407"  commit-interval="#{env['commitInterval'] ?: 100}" />
+					</batch:tasklet>
+				</batch:step>
+			</batch:partition>
+		</batch:step>
+		
+		<batch:step id="cc1407FileMerger" next="cc1407MatchErrMerge">
+			<batch:tasklet ref="t1407FileMerger" />
+		</batch:step>
+		
+		<batch:step id="cc1407MatchErrMerge" next="cc1404">
+			<batch:description>合并对账异常文件</batch:description>
+			<batch:tasklet ref="t1407MergeMatchErrRpt" />
+		</batch:step> -->
+		
+		<!-- 1404 writer不支持分片 -->
+		<batch:step parent="stepTemplate"  id="cc1404" next="cc1404FileMerger" >
+			<batch:description>马上对账完毕清理Order表</batch:description>
+			<batch:partition partitioner="r1404">
+				<batch:handler grid-size="#{env['GridSize'] ?: 16}" task-executor="asyncTaskExecutor"/>
+				<batch:step parent="stepTemplate">
+			<batch:tasklet>
+				<batch:chunk reader="r1404" processor="p1404" writer="w1404"  commit-interval="#{env['commitInterval'] ?: 100}" />
+			</batch:tasklet>
+			</batch:step>
+			</batch:partition>
+		</batch:step>
+		
+		<batch:step parent="stepTemplate" id="cc1404FileMerger" next="cc1405">
+			<batch:tasklet ref="t1404FileMerger" />
+		</batch:step>
+		
+		<batch:step parent="stepTemplate"  id="cc1405" next="cc1501" >
+			<batch:description>清理转移外部扣款表</batch:description>
+			<batch:partition partitioner="r1405">
+				<batch:handler grid-size="#{env['GridSize'] ?: 16}" task-executor="asyncTaskExecutor"/>
+				<batch:step parent="stepTemplate">
+			<batch:tasklet>
+				<batch:chunk reader="r1405" processor="p1405" commit-interval="#{env['commitInterval'] ?: 100}" />
+			</batch:tasklet>
+			</batch:step>
+			</batch:partition>
+		</batch:step>
+		
+		<!--  批量调额  -->
+        <batch:step id="cc1501" parent="stepTemplate" next="cc1502">
+			  <batch:tasklet>
+	        	<batch:chunk reader="r1501" processor="p1501" commit-interval="#{env['commitInterval'] ?: 100}" />
+	        </batch:tasklet>
+        </batch:step>
+        
+		<!-- 调额报表 -->
+		<batch:step parent="stepTemplate"  id="cc1502" next="cc600">
+			  <batch:tasklet>
+	        	<batch:chunk reader="r1502" processor="p1502" writer="w1502"  commit-interval="#{env['commitInterval'] ?: 100}" />
+	        </batch:tasklet>
+        </batch:step>
+        
+		<!-- 出交易流水文件 -->
+		<batch:step parent="stepTemplate" id="cc600" next="cc600FileMerger">
+			<batch:partition partitioner="r600Reader">
+				<batch:handler grid-size="#{env['GridSize'] ?: 16}" task-executor="asyncTaskExecutor"/>
+				<batch:step parent="stepTemplate">
+					<batch:tasklet>
+						<batch:chunk reader="r600Reader" processor="p600Processor" writer="w600Writer" commit-interval="#{env['commitInterval'] ?: 100}" />
+					</batch:tasklet>
+				</batch:step>
+			</batch:partition>
+		</batch:step>
+		
+		<batch:step parent="stepTemplate" id="cc600FileMerger" next="cc1001">
+			<batch:tasklet ref="t0600FileMerger" />
+		</batch:step>
+
+		<!-- 交易转换 -->
+		<batch:step parent="stepTemplate" id="cc1001" next="cc1001FileMerger">
+			<batch:partition partitioner="r1001">
+				<batch:handler grid-size="#{env['GridSize'] ?: 16}" task-executor="asyncTaskExecutor"/>
+				<batch:step parent="stepTemplate">
+					<batch:tasklet>
+					<batch:chunk reader="r1001" processor="p1001" writer="w1001" commit-interval="#{env['commitInterval'] ?: 100}" />
+				</batch:tasklet>
+				</batch:step>
+			</batch:partition>
+		</batch:step>
+		
+		<batch:step parent="stepTemplate" id="cc1001FileMerger" next="cc8101">
+			<batch:tasklet ref="t1001FileMerger" />
+		</batch:step>
+		
+		<!-- 授权7*24-备份unmatchO到TmAuthHst中 -->
+    <!--     <batch:step  parent="stepTemplate"  id="cc8001" next="cc8001FileMerger">
+        	<batch:partition partitioner="r8001">
+				<batch:handler grid-size="#{env['GridSize'] ?: 16}" task-executor="asyncTaskExecutor"/>
+				<batch:step parent="stepTemplate">
+					<batch:tasklet>
+						<batch:chunk reader="r8001" processor="p8001" writer="w8001" commit-interval="#{env['commitInterval'] ?: 100}" />
+					</batch:tasklet>
+				</batch:step>
+			</batch:partition>
+        </batch:step>
+        
+        <batch:step parent="stepTemplate" id="cc8001FileMerger" next="cc8101">
+			<batch:tasklet ref="t8001FileMerger" />
+		</batch:step> -->
+
+        <!-- 授权7*24-根据反向条件删除unmatchO -->
+        <batch:step parent="stepTemplate"  id="cc8101"	next="cc8101FileMerger">
+       		<batch:partition partitioner="r8101">
+				<batch:handler grid-size="#{env['GridSize'] ?: 16}" task-executor="asyncTaskExecutor"/>
+				<batch:step parent="stepTemplate">
+					<batch:tasklet>
+						<batch:chunk reader="r8101" processor="p8101" writer="w8101" commit-interval="#{env['commitInterval'] ?: 100}" />
+					</batch:tasklet>
+					</batch:step>
+			</batch:partition>
+		</batch:step>
+		
+		<batch:step parent="stepTemplate" id="cc8101FileMerger" next="cc8201">
+			<batch:tasklet ref="t8101FileMerger" />
+		</batch:step>
+
+        <!-- 授权7*24-根据条件删除authInq -->
+        <batch:step parent="stepTemplate"  id="cc8201"  next="cc8201FileMerger">
+       		<batch:partition partitioner="r8201">
+				<batch:handler grid-size="#{env['GridSize'] ?: 16}" task-executor="asyncTaskExecutor"/>
+				<batch:step parent="stepTemplate">
+					<batch:tasklet>
+						<batch:chunk reader="r8201" processor="p8201" writer="w8201"  commit-interval="#{env['commitInterval'] ?: 100}" />
+					</batch:tasklet>
+					</batch:step>
+			</batch:partition>
+        </batch:step>
+        
+        <batch:step parent="stepTemplate" id="cc8201FileMerger" next="cc2001">
+			<batch:tasklet ref="t8201FileMerger" />
+		</batch:step>
+
+		<!-- 往日挂账交易 -->
+		<batch:step parent="stepTemplate" id="cc2001" next="cc2001FileMerger">
+			<batch:partition partitioner="r2001">
+				<batch:handler grid-size="#{env['GridSize'] ?: 16}" task-executor="asyncTaskExecutor"/>
+				<batch:step parent="stepTemplate">
+					<batch:tasklet>
+						<batch:chunk reader="r2001" processor="p2001" writer="w2001"  commit-interval="#{env['commitInterval'] ?: 100}" />
+					</batch:tasklet>
+				</batch:step>
+			</batch:partition>
+		</batch:step>
+		
+		<batch:step parent="stepTemplate" id="cc2001FileMerger" next="cc2101">
+			<batch:tasklet ref="t2001FileMerger" />
+		</batch:step>
+
+		<batch:step parent="stepTemplate" id="cc2101" next="cc2101FileMerger">
+			<batch:partition partitioner="r2101">
+				<batch:handler grid-size="#{env['GridSize'] ?: 16}" task-executor="asyncTaskExecutor"/>
+				<batch:step parent="stepTemplate">
+					<batch:tasklet>
+						<batch:chunk reader="r2101" processor="p2101" writer="w2101"  commit-interval="#{env['commitInterval'] ?: 100}" />
+					</batch:tasklet>
+				</batch:step>
+			</batch:partition>
+		</batch:step>
+		
+		<batch:step parent="stepTemplate" id="cc2101FileMerger" next="cc1001TPSTxn">
+			<batch:tasklet ref="t2101FileMerger" />
+		</batch:step>
+		
+		<!-- 数据装载 -->
+		<batch:step parent="stepTemplate" id="cc1001TPSTxn" next="cc1001TxnManual">
+			<batch:partition partitioner="R1001TPSTxn">
+				<batch:handler grid-size="#{env['GridSize'] ?: 16}" task-executor="asyncTaskExecutor"/>
+				<batch:step parent="stepTemplate">
+					<batch:tasklet>
+						<batch:chunk reader="R1001TPSTxn" processor="p1011" writer="w1011"  commit-interval="#{env['commitInterval'] ?: 100}" />
+					</batch:tasklet>
+				</batch:step>
+			</batch:partition>
+		</batch:step>
+		
+		<!-- 数据装载 -->
+		<batch:step parent="stepTemplate" id="cc1001TxnManual" next="cc1011FileMerger">
+			<batch:partition partitioner="R1001TxnManual">
+				<batch:handler grid-size="#{env['GridSize'] ?: 16}" task-executor="asyncTaskExecutor"/>
+				<batch:step parent="stepTemplate">
+					<batch:tasklet>
+						<batch:chunk reader="R1001TxnManual" processor="p1011" writer="w1011"  commit-interval="#{env['commitInterval'] ?: 100}" />
+					</batch:tasklet>
+				</batch:step>
+			</batch:partition>
+		</batch:step>
+		
+		<batch:step parent="stepTemplate" id="cc1011FileMerger" next="cc3001">
+			<batch:tasklet ref="t1011FileMerger" />
+		</batch:step>
+		
+		<batch:step parent="stepTemplate" id="cc3001" next="cc3001FileMerger">
+			<batch:partition partitioner="r3001">
+				<batch:handler grid-size="#{env['GridSize'] ?: 16}" task-executor="asyncTaskExecutor"/>
+				<batch:step parent="stepTemplate">
+					<batch:tasklet>
+						<batch:chunk reader="r3001" processor="p3001" writer="w3001"  commit-interval="#{env['commitInterval'] ?: 100}" />
+					</batch:tasklet>
+				</batch:step>
+			</batch:partition>
+		</batch:step>
+		
+		<batch:step parent="stepTemplate" id="cc3001FileMerger" next="cc3010AutoCancle">
+			<batch:tasklet ref="t3001FileMerger" />
+		</batch:step>
+		
+		<!-- cpd91天自动取消贷款 -->
+		<batch:step parent="stepTemplate" id="cc3010AutoCancle" next="cc3011AutoExempt">
+			<batch:partition partitioner="r3010">
+				<batch:handler grid-size="#{env['GridSize'] ?: 16}" task-executor="asyncTaskExecutor"/>
+				<batch:step parent="stepTemplate">
+					<batch:tasklet>
+						<batch:chunk reader="r3010" processor="p3010" writer="w3010"  commit-interval="#{env['commitInterval'] ?: 100}" />
+					</batch:tasklet>
+				</batch:step>
+			</batch:partition>
+		</batch:step>
+		
+		<!-- 自动豁免 -->
+		<batch:step parent="stepTemplate" id="cc3011AutoExempt" next="cc3100">
+			<batch:partition partitioner="r3011">
+				<batch:handler grid-size="#{env['GridSize'] ?: 16}" task-executor="asyncTaskExecutor"/>
+				<batch:step parent="stepTemplate">
+					<batch:tasklet>
+						<batch:chunk reader="r3011" processor="p3011" writer="w3011"  commit-interval="#{env['commitInterval'] ?: 100}" />
+					</batch:tasklet>
+				</batch:step>
+			</batch:partition>
+		</batch:step>
+		
+		<batch:step parent="stepTemplate" id="cc3100" next="cc2201">
+			<batch:partition partitioner="r3100">
+				<batch:handler grid-size="#{env['GridSize'] ?: 16}" task-executor="asyncTaskExecutor"/>
+				<batch:step parent="stepTemplate">
+					<batch:tasklet>
+						<batch:chunk reader="r3100" processor="p3100"  commit-interval="#{env['commitInterval'] ?: 100}" />
+					</batch:tasklet>
+				</batch:step>
+			</batch:partition>
+		</batch:step>
+
+		<!--年费收取 -->
+		<batch:step parent="stepTemplate" id="cc2201" next="cc2201FileMerger">
+		<batch:partition partitioner="r2201">
+				<batch:handler grid-size="#{env['GridSize'] ?: 16}" task-executor="asyncTaskExecutor"/>
+				<batch:step parent="stepTemplate">
+				<batch:tasklet>
+					<batch:chunk reader="r2201" processor="p2201" writer="w2201" commit-interval="#{env['commitInterval'] ?: 100}" />
+				</batch:tasklet>
+			</batch:step>
+			</batch:partition>
+		</batch:step>
+		<batch:step parent="stepTemplate" id="cc2201FileMerger" next="cc5001">
+			<batch:tasklet ref="t2201FileMerger"/>
+		</batch:step>
+
+		<!-- 关闭账户 -->
+		<batch:step parent="stepTemplate" id="cc5001" next="cc5001FileMerger">
+			<batch:tasklet>
+				<batch:chunk reader="r5001" processor="p5001" writer="w5001"  commit-interval="#{env['commitInterval'] ?: 100}" />
+			</batch:tasklet>
+		</batch:step>
+		
+		<batch:step parent="stepTemplate" id="cc5001FileMerger" next="cc6001">
+			<batch:tasklet ref="t5001FileMerger" />
+		</batch:step>
+
+		<!-- 交易入账 -->
+		<batch:step parent="stepTemplate" id="cc6001" next="cc6001FileMerger">
+		<batch:partition partitioner="r6001">
+			<batch:handler grid-size="#{env['GridSize'] ?: 16}" task-executor="asyncTaskExecutor"/>
+				<batch:step parent="stepTemplate">
+					<batch:tasklet>
+						<batch:chunk reader="r6001" processor="p6001" writer="w6001"  commit-interval="#{env['commitInterval'] ?: 100}" />
+					</batch:tasklet>
+				</batch:step>
+			</batch:partition>
+		</batch:step>
+		
+		<batch:step parent="stepTemplate" id="cc6001FileMerger" next="cc6101">
+			<batch:tasklet ref="t6001FileMerger" />
+		</batch:step>
+
+		<batch:step parent="stepTemplate" id="cc6101" next="cc6101FileMerger">
+			<batch:partition partitioner="r6101">
+				<batch:handler grid-size="#{env['GridSize'] ?: 16}" task-executor="asyncTaskExecutor"/>
+					<batch:step parent="stepTemplate">
+						<batch:tasklet>
+							<batch:chunk reader="r6101" processor="p6101" writer="w6101"  commit-interval="#{env['commitInterval'] ?: 100}" />
+						</batch:tasklet>
+					</batch:step>
+			</batch:partition>
+		</batch:step>
+		
+		<batch:step parent="stepTemplate" id="cc6101FileMerger" next="cc7001">
+			<batch:tasklet ref="t6101FileMerger" />
+		</batch:step>
+
+		<batch:step parent="stepTemplate" id="cc7001" next="cc7001FileMerger">
+			<batch:partition partitioner="r7001">
+				<batch:handler grid-size="#{env['GridSize'] ?: 16}" task-executor="asyncTaskExecutor"/>
+					<batch:step parent="stepTemplate">
+						<batch:tasklet>
+							<batch:chunk reader="r7001" processor="p7001" writer="w7001"  commit-interval="#{env['commitInterval'] ?: 100}" />
+						</batch:tasklet>
+					</batch:step>
+			</batch:partition>
+		</batch:step>
+		
+		<batch:step parent="stepTemplate" id="cc7001FileMerger" next="cc8301">
+			<batch:tasklet ref="t7001FileMerger" />
+		</batch:step>
+
+		 <!-- 授权7*24-根据tmunmatchOdelete的数据删除unmatchO 需要在 账务s6000后执行 -->
+		<batch:step parent="stepTemplate"  id="cc8301" next="cc8301FileMerger">
+			<batch:partition partitioner="r8301">
+				<batch:handler grid-size="#{env['GridSize'] ?: 16}" task-executor="asyncTaskExecutor"/>
+					<batch:step parent="stepTemplate">
+						<batch:tasklet>
+				        	<batch:chunk reader="r8301" processor="p8301"  writer="w8301"  commit-interval="#{env['commitInterval'] ?: 100}" />
+				        </batch:tasklet>
+					</batch:step>
+			</batch:partition>
+        </batch:step>
+        
+        <batch:step parent="stepTemplate" id="cc8301FileMerger" next="cc8401">
+			<batch:tasklet ref="t8301FileMerger" />
+		</batch:step>
+
+        <!-- 授权7*24-AFU  需要在账务所有更新卡账客信息的步骤后执行 -->
+       	<batch:step parent="stepTemplate"  id="cc8401" next="cc8401FileMerger">
+       	<batch:partition partitioner="r8401">
+				<batch:handler grid-size="#{env['GridSize'] ?: 16}" task-executor="asyncTaskExecutor"/>
+					<batch:step parent="stepTemplate">
+					 <batch:tasklet>
+			        	<batch:chunk reader="r8401" processor="p8401"   writer="w8401"  commit-interval="#{env['commitInterval'] ?: 100}" />
+			        </batch:tasklet>
+	       			 </batch:step>
+	        </batch:partition>
+        </batch:step>
+        
+        <batch:step parent="stepTemplate" id="cc8401FileMerger" next="cc9001">
+			<batch:tasklet ref="t8401FileMerger" />
+		</batch:step>
+		
+		<!-- 1104报表G17 -->
+ 	 	<batch:step parent="stepTemplate"  id="cc9001" next="cc9001FileMerger">
+			  <batch:tasklet>
+	        	<batch:chunk reader="r9001" writer="w9001"  commit-interval="#{env['commitInterval'] ?: 100}" />
+	        </batch:tasklet>
+        </batch:step>
+        
+         <batch:step parent="stepTemplate" id="cc9001FileMerger" next="cca100Settle">
+			<batch:tasklet ref="t9001FileMerger" />
+		</batch:step>
+
+        <!-- 结算 -->
+		<batch:step parent="stepTemplate"  id="cca100Settle" next="cca301MSLoanMsg">
+			<batch:tasklet>
+				<batch:chunk reader="ra100" processor="pa100" writer="wa100"  commit-interval="#{env['commitInterval'] ?: 100}" />
+		 	</batch:tasklet>
+		</batch:step>
+		
+        <!-- 生成短信文件,发送给通知平台 -->
+        <batch:step parent="stepTemplate" id="cca301MSLoanMsg" next="cca302WhiteListMsg">
+			<batch:description>马上贷还款提醒短信文件</batch:description>
+			<batch:partition partitioner="ra301">
+				<batch:handler grid-size="#{env['GridSize']?:16}" task-executor="asyncTaskExecutor"/>
+				<batch:step>
+					<batch:tasklet>
+						<batch:chunk reader="ra301" processor="pa301" writer="wa301"  commit-interval="#{env['commitInterval'] ?: 100}" />
+					</batch:tasklet>
+				</batch:step>
+			</batch:partition>
+		</batch:step>
+		
+		<batch:step parent="stepTemplate" id="cca302WhiteListMsg" next="cca303PrepayRemainMsg">
+			<batch:description>白名单还款提醒短信文件</batch:description>
+			<batch:partition partitioner="ra302">
+				<batch:handler grid-size="#{env['GridSize']?:16}" task-executor="asyncTaskExecutor"/>
+				<batch:step>
+					<batch:tasklet>
+						<batch:chunk reader="ra302" processor="pa302" writer="wa302"  commit-interval="#{env['commitInterval'] ?: 100}" />
+					</batch:tasklet>
+				</batch:step>
+			</batch:partition>
+		</batch:step>
+		
+		<batch:step parent="stepTemplate" id="cca303PrepayRemainMsg" next="cca304RefundMsg">
+			<batch:description>提前还款提醒短信</batch:description>
+			<batch:partition partitioner="ra303">
+				<batch:handler grid-size="#{env['GridSize']?:16}" task-executor="asyncTaskExecutor"/>
+				<batch:step>
+					<batch:tasklet>
+						<batch:chunk reader="ra303" processor="pa303" writer="wa303"  commit-interval="#{env['commitInterval'] ?: 100}" />
+					</batch:tasklet>
+				</batch:step>
+			</batch:partition>
+		</batch:step>
+		
+		<batch:step parent="stepTemplate" id="cca304RefundMsg" next="cca305BatchCutSuccessMsg">
+			<batch:description>退货欠款提醒短信</batch:description>
+			<batch:partition partitioner="ra304">
+				<batch:handler grid-size="#{env['GridSize']?:16}" task-executor="asyncTaskExecutor"/>
+				<batch:step>
+					<batch:tasklet>
+						<batch:chunk reader="ra304" processor="pa304" writer="wa304"  commit-interval="#{env['commitInterval'] ?: 100}" />
+					</batch:tasklet>
+				</batch:step>
+			</batch:partition>
+		</batch:step>
+		<!-- 批量扣款成功通知客户短信 by lizz 20160308-->
+		<batch:step parent="stepTemplate" id="cca305BatchCutSuccessMsg" next="cca300FileMerge">
+			<batch:description>批量扣款成功通知客户短信</batch:description>
+			<batch:partition partitioner="ra305">
+				<batch:handler grid-size="#{env['GridSize']?:16}" task-executor="asyncTaskExecutor"/>
+				<batch:step>
+					<batch:tasklet>
+						<batch:chunk reader="ra305" processor="pa305" writer="wa305"  commit-interval="#{env['commitInterval'] ?: 100}" />
+					</batch:tasklet>
+				</batch:step>
+			</batch:partition>
+		</batch:step>
+		
+		<batch:step parent="stepTemplate" id="cca300FileMerge" next="cca401SettleReplaceFee">
+			<batch:tasklet ref="ma300" />
+		</batch:step>
+		
+		<!-- 结算文件  开始  -->
+		<batch:step parent="stepTemplate" id="cca401SettleReplaceFee" next="cca402SettlePremiumAmt">
+			<batch:description>结算代收费记录</batch:description> 
+			<batch:partition partitioner="ra401">
+				<batch:handler grid-size="#{env['GridSize']?:16}" task-executor="asyncTaskExecutor"/>
+				<batch:step>
+					<batch:tasklet>
+						<batch:chunk reader="ra401" writer="wa401" commit-interval="#{env['commitInterval'] ?: 100}" />
+					</batch:tasklet>
+				</batch:step>
+			</batch:partition>
+		</batch:step>
+		
+		<batch:step parent="stepTemplate" id="cca402SettlePremiumAmt" next="cca408SettleFile">
+			<batch:description>结算趸交费记录</batch:description>
+			<batch:partition partitioner="ra402">
+				<batch:handler grid-size="#{env['GridSize']?:16}" task-executor="asyncTaskExecutor"/>
+				<batch:step>
+					<batch:tasklet>
+						<batch:chunk reader="ra402" writer="wa402" commit-interval="#{env['commitInterval'] ?: 100}" />
+					</batch:tasklet>
+				</batch:step>
+			</batch:partition>
+		</batch:step>
+        
+        <batch:step parent="stepTemplate" id="cca408SettleFile" next="cca400FileMerge">
+        	<batch:description>结算文件生成</batch:description>
+        	<batch:partition partitioner="ra408">
+				<batch:handler grid-size="#{env['GridSize']?:16}" task-executor="asyncTaskExecutor"/>
+				<batch:step>
+		        	<batch:tasklet>
+		        		<batch:chunk reader="ra408" writer="wa408" commit-interval="#{env['commitInterval'] ?: 100}" />
+		        	</batch:tasklet>
+				</batch:step>
+			</batch:partition>
+        </batch:step>
+        
+        <batch:step parent="stepTemplate"  id="cca400FileMerge" next="cca409SendSettleRpt">
+    		<batch:tasklet ref="ma400" />    
+	    </batch:step>
+        
+        <batch:step parent="stepTemplate" id="cca409SendSettleRpt" next="cca910MergeSmsFile" >
+        	<batch:tasklet ref="oa409"/>
+        </batch:step>
+		<!-- 结算文件  结束  -->
+		
+<!--        <batch:step parent="stepTemplate"  id="cca310SendRepayFailMsg" next="cca311SendMSLoanMsg">
+        	<batch:tasklet ref="sendRepayFailMsg"/>
+       </batch:step>
+        
+        <batch:step parent="stepTemplate"  id="cca311SendMSLoanMsg" next="cca312SendWhiteListMsg">
+        	<batch:tasklet ref="sendMSLoanMsg"/>
+        </batch:step>
+        
+        <batch:step parent="stepTemplate"  id="cca312SendWhiteListMsg" next="cca313SendAcctCrlmtAdjMsg">
+        	<batch:tasklet ref="sendWhiteListMsg"/>
+        </batch:step>
+        
+        批量调额短信接口文件上传ftp后，发送通知给通知平台
+        <batch:step parent="stepTemplate"  id="cca313SendAcctCrlmtAdjMsg" next="cca900SendMessageTask">
+        	<batch:tasklet ref="sendAcctCrlmtAdjMsg"/>
+        </batch:step> -->
+        
+		<!-- 合并短信文件 只上传一个汇总文件到ftp,批量短信文件接口增加四个字段   by lizz 20151221 -->
+       <batch:step parent="stepTemplate"  id="cca910MergeSmsFile" next="cca920SendBatchSmsTask">
+        	<batch:tasklet ref="mergeSmsFile"/>
+        </batch:step>
+        
+		<!-- 通知短信平台 -->
+       <batch:step parent="stepTemplate"  id="cca920SendBatchSmsTask" next="cca930SendMessageTask">
+        	<batch:tasklet ref="sendBatchSmsTask"/>
+        </batch:step>
+        
+		<!-- 通知数据平台 -->
+       <batch:step parent="stepTemplate"  id="cca930SendMessageTask" next="rptJobStartFile">
+        	<batch:tasklet ref="sendMessageTask"/>
+        </batch:step>
+				
+		<batch:step id="rptJobStartFile">
+			<batch:tasklet ref="genRptJobStartFile" />
+		</batch:step>
+	</batch:job>
+</beans>

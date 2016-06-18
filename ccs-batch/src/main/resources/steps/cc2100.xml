@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+
+	
+	<bean id="r2101" class="com.sunline.ccs.batch.cc2100.R2101TxnAdjImp" scope="step"/>
+	
+	<bean id="p2101" class="com.sunline.ccs.batch.cc2100.P2101TxnAdjImp" scope="step"/>
+	
+	<!-- <bean id="w2101TxnPostRpt" class="com.sunline.acm.service.sdk.BatchFileWriter" scope="step">
+		<description>账务调整待入账报表</description>
+		<property name="fileDetailClass" value="com.sunline.ppy.dictionary.report.ccs.RptTxnItem"/>
+		<property name="filename" value="S040001TxnPostRpt"/>
+	</bean>
+	<bean id="w2101Gl" class="com.sunline.acm.service.sdk.BatchFileWriter" scope="step">
+		<description>账务调整送总账</description>
+		<property name="fileDetailClass" value="com.sunline.ppy.dictionary.exchange.GlTxnItem"/>
+		<property name="filename" value="S040002Gl"/>
+	</bean>
+	<bean id="w2101TranAdjLogRpt" class="com.sunline.acm.service.sdk.BatchFileWriter" scope="step">
+		<description>账务调整日志报表</description>
+		<property name="fileDetailClass" value="com.sunline.ppy.dictionary.report.ccs.TranAdjLogRptItem"/>
+		<property name="filename" value="S040003TranAdjLogRpt"/>
+	</bean> -->
+	
+	<!-- file -->
+	<bean id="w2101TxnPostRpt" class="com.sunline.ark.batch.YakPartitionFileItemWriter" scope="step">
+		<description>账务调整待入账报表</description>
+		<property name="resource" ref="resS040001Rpt"/>
+		<property name="fileDetailClass" value="com.sunline.ppy.dictionary.report.ccs.RptTxnItem"/>
+	</bean>
+	
+	<bean id="w2101Gl" class="com.sunline.ark.batch.YakPartitionFileItemWriter" scope="step">
+		<description>账务调整送总账</description>
+		<property name="resource" ref="resS040002Gl"/>
+		<property name="fileDetailClass" value="com.sunline.ppy.dictionary.exchange.GlTxnItem"/>
+	</bean>
+	
+	<bean id="w2101TranAdjLogRpt" class="com.sunline.ark.batch.YakPartitionFileItemWriter" scope="step">
+		<description>挂账送总账文件</description>
+		<property name="resource" ref="resS040003Log"/>
+		<property name="fileDetailClass" value="com.sunline.ppy.dictionary.report.ccs.TranAdjLogRptItem"/>
+	</bean>
+	
+	<bean id="w2101" class="com.sunline.ark.batch.PropertyDelegateWriter" scope="step">
+		<property name="writers">
+			<map>
+				<entry key="rptTxnItem" value-ref="w2101TxnPostRpt"/>
+				<entry key="glTxnItemList" value-ref="w2101Gl"/>
+				<entry key="tranAdjLogRptItem" value-ref="w2101TranAdjLogRpt"/>
+			</map>
+		</property>
+	</bean>
+	
+	<bean id="t2101FileMerger" class="com.sunline.ark.batch.FileMergerTasklet">
+		<property name="taskExecutor" ref="asyncTaskExecutor"/>
+		<property name="pollInterval" value="#{env['pollInterval']?:2000}" />
+		<property name="resources" >
+			<list>
+				<ref bean="resS040001Rpt" />
+				<ref bean="resS040002Gl" />
+				<ref bean="resS040003Log"/>
+			</list>
+		</property>
+	</bean>
+	
+<!-- 	<bean id="e2101" class="com.sunline.fps.service.sdk.batch.DbFileExporter" scope="step">
+	    <property name="instanceName" value="#{env.instanceName}" />
+	    <property name="systemType" value="CCS" />
+		<property name="filenames">
+			<list>
+				<value>S040001TxnPostRpt</value>
+				<value>S040002Gl</value>
+				<value>S040003TranAdjLogRpt</value>
+			</list>
+		</property>
+	</bean> -->
+</beans>

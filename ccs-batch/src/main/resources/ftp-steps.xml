@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+
+	<!-- 支付前置ftp -->
+	<bean id="bizchannelFtpClient" class="com.sunline.ark.batch.FTPClientTemplate">
+		<property name="host" value="#{env.msFtphost}" />
+		<property name="userName" value="#{env.frontUserName}" />
+		<property name="password" value="#{env.frontPassword}" />
+	</bean>
+	<!-- 数据平台ftp -->
+	<bean id="dataPlatformFtpClient" class="com.sunline.ark.batch.FTPClientTemplate">
+		<property name="host" value="#{env.msFtphost}" />
+		<property name="userName" value="#{env.dataPlatformUserName}" />
+		<property name="password" value="#{env.dataPlatformPassword}" />
+	</bean>
+	<!-- 催收系统ftp -->
+	<bean id="amqueFtpClient" class="com.sunline.ark.batch.FTPClientTemplate">
+		<property name="host" value="#{env.msFtphost}" />
+		<property name="userName" value="#{env.amqueUserName}" />
+		<property name="password" value="#{env.amquePassword}" />
+	</bean>
+	<!-- 市场运营ftp -->
+	<bean id="businessFtpClient" class="com.sunline.ark.batch.FTPClientTemplate">
+		<property name="host" value="#{env.msFtphost}" />
+		<property name="userName" value="#{env.businessUserName}" />
+		<property name="password" value="#{env.businessPassword}" />
+	</bean>
+	<!-- 阳关前置ftp -->
+	<bean id="ygFtpClientTemplate" class="com.sunline.ark.batch.FTPClientTemplate">
+		<property name="host" value="#{env.msFtphost}" />
+		<property name="userName" value="#{env.ygFtpUserName}" />
+		<property name="password" value="#{env.ygFtpPassword}" />
+	</bean>	
+	<!-- 财务报表ftp -->
+	<bean id="msRptFtpClientTemplate" class="com.sunline.ark.batch.FTPClientTemplate">
+		<property name="host" value="#{env.msFtphost}" />
+		<property name="userName" value="#{env.msFtpUserName}" />
+		<property name="password" value="#{env.msFtpPassword}" />
+	</bean>
+	<!-- 商户平台ftp -->
+	<bean id="merchantFtpClient" class="com.sunline.ark.batch.FTPClientTemplate">
+		<property name="host" value="#{env.msFtphost}" />
+		<property name="userName" value="#{env.merchantFtpUserName}" />
+		<property name="password" value="#{env.merchantFtpPassword}" />
+	</bean>
+	<!-- 结算平台ftp -->
+	<bean id="settlePlatformFtpClient" class="com.sunline.ark.batch.FTPClientTemplate">
+		<property name="host" value="#{env.msFtphost}" />
+		<property name="userName" value="#{env.settlePlatformUser}" />
+		<property name="password" value="#{env.settlePlatformPassword}" />
+	</bean>
+</beans>

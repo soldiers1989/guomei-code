@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<beans default-lazy-init="false" xmlns:p="http://www.springframework.org/schema/p"
+	xmlns="http://www.springframework.org/schema/beans" xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:util="http://www.springframework.org/schema/util"
+	xmlns:jee="http://www.springframework.org/schema/jee" xmlns:jms="http://www.springframework.org/schema/jms"
+	xmlns:batch="http://www.springframework.org/schema/batch" xmlns:task="http://www.springframework.org/schema/task"
+	xsi:schemaLocation="http://www.springframework.org/schema/jee http://www.springframework.org/schema/jee/spring-jee-3.1.xsd
+		http://www.springframework.org/schema/jms http://www.springframework.org/schema/jms/spring-jms-3.1.xsd
+		http://www.springframework.org/schema/task http://www.springframework.org/schema/task/spring-task-3.2.xsd
+		http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.1.xsd
+		http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util-3.1.xsd
+		http://www.springframework.org/schema/batch http://www.springframework.org/schema/batch/spring-batch.xsd
+		http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-3.1.xsd">
+
+	<!-- 批量步骤模版，目前用于定义一组listener -->
+	<batch:step id="stepTemplate" abstract="true">
+		<batch:listeners>
+			<!-- <batch:listener ref="acmBatchStatusListener" /> -->
+			<batch:listener>
+				<bean class="com.sunline.ark.batch.DebugSupportListener" />
+			</batch:listener>
+		</batch:listeners>
+	</batch:step>
+	
+	<batch:job id="ccsFrontJob">
+		<batch:step parent="stepTemplate" id="s6000-ptp-payment" next="s9000-generate-file">
+			<batch:description>PTP扣款</batch:description>
+			<batch:tasklet>
+				<batch:chunk reader="r6000" processor="p6000" writer="w6000"
+					commit-interval="#{env['commitInterval'] ?: 100}" />
+			</batch:tasklet>
+		</batch:step>
+		
+		<!-- 生成代扣文件 -->
+		<batch:step id="s9000-generate-file" next="s9100-transfer-file">
+			<batch:tasklet>
+				<batch:chunk reader="r9000" processor="p9000" writer="w9000"
+					commit-interval="100" />
+			</batch:tasklet>
+		</batch:step>
+
+		<!-- ftp转移代扣文件 -->
+		<batch:step id="s9100-transfer-file">
+			<batch:tasklet ref="frontTransferFile" />
+		</batch:step>
+	</batch:job>
+
+	<!-- 催收PTP文件 -->
+	<bean id="resS6000PtpPaymentFile" class="com.sunline.ark.batch.ResourceFactoryBean"
+		scope="step">
+		<description>催收PTP文件</description>
+		<property name="resource"
+			value="file:#{env.batchWorkDir}/#{new java.text.SimpleDateFormat('yyyyMMdd').format(batchStatusFacility.getBatchDate())}/ptp_#{new java.text.SimpleDateFormat('yyyyMMdd').format(batchStatusFacility.getBatchDate())}" />
+	</bean>
+
+	<bean id="r6000" class="com.sunline.ark.batch.VariableFileItemReader"
+		scope="step">
+		<property name="lineSperator" value="\|" />
+		<property name="detailClass" value="com.sunline.ccs.batch.front.SPtpBatchCutFile" />
+		<property name="resource" ref="resS6000PtpPaymentFile" />
+	</bean>
+
+	<bean id="p6000" class="com.sunline.ccs.batch.front.P6000PTPayment"
+		scope="step" />
+	<bean id="w6000" class="com.sunline.ark.batch.NullItemWriter"
+		scope="step" />
+
+	<bean id="r9000" class="com.sunline.ccs.batch.front.R9000GeneratePaymentFile"
+		scope="step" />
+	<bean id="p9000" class="com.sunline.ccs.batch.front.P9000GeneratePaymentFile"
+		scope="step" />
+	<bean id="w9000" class="com.sunline.ark.batch.VariableFileItemWriter"
+		scope="step">
+		<property name="resource" ref="res9000Payment" />
+		<property name="lineSeparator" value="\|" />
+		<property name="containLastSeparator" value="false" />
+		<property name="detailClass" value="com.sunline.ccs.batch.front.S9000PaymentItem" />
+		<property name="extensionFileName" value="#{env.extensionFileName}" />
+		<property name="validateFileName" value="#{env.validateFileName}" />
+	</bean>
+	<bean id="res9000Payment" class="com.sunline.ark.batch.ResourceFactoryBean">
+		<description>代扣文件</description>
+		<property name="resource"
+			value="file:#{env.batchWorkDir}/#{env.paymentFileName}" />
+	</bean>
+
+	<bean id="frontTransferFile" class="com.sunline.ccs.batch.front.TransferFileTasklet">
+		<!-- <property name="ftpClientOperations" ref="ftpClientTemplate"/> -->
+	</bean>
+	<!-- <bean id="ftpClientTemplate" class="com.sunline.fps.service.sdk.batch.FTPClientTemplate"> 
+		<property name="host" value="#{env.frontHost}" /> <property name="userName" 
+		value="#{env.frontUserName}" /> <property name="password" value="#{env.frontPassword}" 
+		/> </bean> -->
+
+
+</beans>

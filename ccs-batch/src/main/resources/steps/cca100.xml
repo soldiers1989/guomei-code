@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+	
+	<!-- 结算 -->
+	<bean id="ra100" class="com.sunline.ccs.batch.cca100.RA100Settle" scope="step"/>          
+	<bean id="pa100" class="com.sunline.ccs.batch.cca100.PA100Settle" scope="step"/>          
+	<bean id="wa100" class="com.sunline.ark.batch.NullItemWriter" scope="step"/> 
+
+</beans>

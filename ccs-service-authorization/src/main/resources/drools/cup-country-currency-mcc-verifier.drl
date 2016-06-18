@@ -1,0 +1,249 @@
+package com.sunline.ccs.service.auth.verifier
+
+import java.util.Map;
+import com.sunline.ccs.param.def.MccCtrl;
+import com.sunline.ccs.param.def.enums.CheckType;
+import com.sunline.ccs.param.def.enums.AuthReason;
+import com.sunline.ccs.param.def.AuthProduct;
+import com.sunline.ccs.param.def.CountryCtrl;
+import com.sunline.ccs.param.def.CurrencyCtrl;
+import com.sunline.ccs.param.def.enums.AuthFlagAction;
+import com.sunline.ccs.param.def.AuthMccStateCurrXVerify;
+import com.sunline.ccs.service.auth.context.TxnInfo;
+import com.sunline.ccs.service.auth.context.CupMsg;
+import com.sunline.ccs.infrastructure.shared.model.CcsAcctO;
+
+import org.slf4j.Logger;
+global Map<AuthReason, AuthAction> result;
+
+rule "[Ccm_001] 检查针对国家的交易限制"
+	/*
+		国家码检查启用标志 = Y
+		第19域 国家码 ！= 空
+		是否禁止此国家标志 = true
+	*/
+    when
+		TxnInfo( checkList contains "Ccm_001" )
+    	$authProduct : AuthProduct( checkEnabled[CheckType.CountryCodeCheckFlag])
+    	CupMsg( exist(19) )
+    	CountryCtrl( !validInd )
+    	$logger : Logger()	
+    then	
+    	$logger.debug("# drools-rule:[Ccm_001]-TC01");
+    	result.put( AuthReason.TC01, $authProduct.reasonActions.get(AuthReason.TC01) );
+end
+
+rule "[Ccm_002] 检查针对国家的本币单笔交易限额"
+	/*
+		国家码检查启用标志 = Y
+		第19域 国家码 ！= 空
+		币种标识 = 本币币种
+		本币单笔交易限额 <入账币种金额
+	*/
+	when
+		TxnInfo( checkList contains "Ccm_002" )
+		TxnInfo( $countryTransAmt : chbTransAmt )
+		TxnInfo( baseCurrency )
+		$authProduct : AuthProduct( checkEnabled[CheckType.CountryCodeCheckFlag] )
+		CupMsg( exist(19) )
+		CountryCtrl( maxTxnAmtLcl < $countryTransAmt )
+		$logger : Logger()	
+	then	
+		$logger.debug("# drools-rule:[Ccm_002]-TC02");
+    	result.put( AuthReason.TC02, $authProduct.reasonActions.get(AuthReason.TC02) );
+end
+
+rule "[Ccm_003] 检查针对国家的外币单笔交易限额"
+	/*
+		国家码检查启用标志 = Y
+		第19域 国家码 ！= 空
+		币种标识 = 外币币种
+		外币单笔交易限额 < 入账币种金额 
+	*/
+	when
+		TxnInfo( checkList contains "Ccm_003" )
+		TxnInfo( $countryTransAmt : chbTransAmt )
+		TxnInfo( !baseCurrency )
+		$authProduct : AuthProduct( checkEnabled[CheckType.CountryCodeCheckFlag] )
+		CupMsg( exist(19) )
+		CountryCtrl( maxTxnAmtFrg < $countryTransAmt )
+		$logger : Logger()	
+	then	
+		$logger.debug("# drools-rule:[Ccm_003]-TC03");
+    	result.put( AuthReason.TC03, $authProduct.reasonActions.get(AuthReason.TC03) );
+end
+
+rule "[Ccm_004] 检查针对币种的交易限制"
+	/*
+		币种码检查启用标志 = Y
+		是否禁止此币种 = true
+	*/
+    when
+		TxnInfo( checkList contains "Ccm_004" )
+    	$authProduct : AuthProduct( checkEnabled[CheckType.CurrencyCodeCheckFlag] )
+    	CurrencyCtrl( !validInd )
+    	$logger : Logger()	
+    then	
+    	$logger.debug("# drools-rule:[Ccm_004]-TU01");
+    	result.put( AuthReason.TU01, $authProduct.reasonActions.get(AuthReason.TU01) );
+end
+
+
+/*rule "检查针对币种的本币单笔交易限额"
+	
+		币种码检查启用标志 = Y
+		第4域/第6域的交易金额  > 本币单笔交易限额
+	
+	when
+		TxnInfo( $currencyTransAmt : transAmt )
+		AuthProduct( checkEnabled[CheckType.CurrencyCodeCheckFlag] == true )
+		CurrencyCtrl( $currencyTransAmt > maxTxnAmtLcl )
+		$logger : Logger()
+	then	
+		$logger.debug("# drools-rule:[Gen_002]-TU02");
+    	result.put(AuthReason.TU02, null);
+end*/
+
+/*rule "检查针对币种的外币单笔交易限额"
+	
+		国家码检查启用标志 = Y
+		第4域/第6域的交易金额  > 外币单笔交易限额
+	
+	when
+		TxnInfo( $currencyTransAmt : transAmt )
+		AuthProduct( checkEnabled[CheckType.CurrencyCodeCheckFlag] == true )
+		CurrencyCtrl( $currencyTransAmt > maxTxnAmtFrg )
+		$logger : Logger()	
+	then	
+		$logger.debug("# drools-rule:[Gen_002]-TU02");
+    	result.put(AuthReason.TU02, null);
+end
+*/
+
+rule "[Ccm_005] 检查针对MCC的交易限制"
+	/*
+		MCC检查启用标志 = Y
+		第18域 mcc ！= 空
+		是否禁止此币种 = true
+	*/
+    when
+		TxnInfo( checkList contains "Ccm_005" )
+    	$authProduct : AuthProduct( checkEnabled[CheckType.MccCodeCheckFlag] )
+		CupMsg( exist(18) )
+    	MccCtrl( !validInd )
+    	$logger : Logger()	
+    then	
+    	$logger.debug("# drools-rule:[Ccm_005]-TMC1");
+    	result.put( AuthReason.TMC1, $authProduct.reasonActions.get(AuthReason.TMC1) );
+end
+
+rule "[Ccm_006] 检查针对MCC的本币单笔交易限额"
+	/*
+		MCC检查启用标志 = Y
+		第18域 MCC ！= 空
+		币种标识 = 本币币种
+		本币币单笔交易限额 < 入账币种金额 
+	*/
+    when
+		TxnInfo( checkList contains "Ccm_006" )
+		TxnInfo( $mccTransAmt : chbTransAmt )
+		TxnInfo( baseCurrency )
+		$authProduct : AuthProduct( checkEnabled[CheckType.MccCodeCheckFlag] )
+		CupMsg( exist(18) )
+		MccCtrl( maxTxnAmtLcl < $mccTransAmt )
+    	$logger : Logger()	
+    then	
+    	$logger.debug("# drools-rule:[Ccm_006]-TMC2");
+    	result.put( AuthReason.TMC2, $authProduct.reasonActions.get(AuthReason.TMC2) );
+end
+
+rule "[Ccm_007] 检查针对MCC的外币单笔交易限额"
+	/*
+		MCC检查启用标志 = Y
+		第18域 MCC ！= 空
+		币种标识 = 外币种
+		外币币单笔交易限额 <入账币种金额 
+	*/
+    when
+		TxnInfo( checkList contains "Ccm_007" )
+		TxnInfo( $mccTransAmt : chbTransAmt )
+		TxnInfo( !baseCurrency )
+		$authProduct : AuthProduct( checkEnabled[CheckType.MccCodeCheckFlag] )
+		CupMsg( exist(18) )
+		MccCtrl( maxTxnAmtFrg < $mccTransAmt )
+    	$logger : Logger()
+   	then	
+   		$logger.debug("# drools-rule:[Ccm_007]-TMC3");
+    	result.put( AuthReason.TMC3, $authProduct.reasonActions.get(AuthReason.TMC3) );
+end
+
+/*rule "[22] 检查国家/币种/mcc当前是否生效标志"
+	
+		国家/币种/mcc交叉检查启用标志 = Y
+		当前是否生效标志 != Y
+	
+    when
+		TxnInfo( checkList contains "22" )
+		$authProduct : AuthProduct( checkEnabled[CheckType.CountryCurrencyMccCrossCheckFlag] )
+		AuthMccStateCurrXVerify( currentActiveFlag != "Y" || currentActiveFlag != "y")//TODO
+    	$logger : Logger()	then		$logger.debug("# drools-rule:[Gen_002]-");
+    	result.put( AuthReason.TO01, $authProduct.reasonActions.get(AuthReason.TO01) );
+end*/
+
+rule "[Ccm_008] 检查国家/币种/mcc是否禁止此组合交易"
+	/*
+		国家/币种/mcc交叉检查启用标志 = true
+		是否禁止此组合交易 = true
+		当前是否生效标志 = true
+	*/
+    when
+		TxnInfo( checkList contains "Ccm_008" )
+		$authProduct : AuthProduct( checkEnabled[CheckType.CountryCurrencyMccCrossCheckFlag] )
+		AuthMccStateCurrXVerify( forbiddenFlag, currentActiveFlag )
+    	$logger : Logger()	
+    then	
+    	$logger.debug("# drools-rule:[Ccm_008]-TO01");
+    	result.put( AuthReason.TO01, $authProduct.reasonActions.get(AuthReason.TO01) );
+end
+
+rule "[Ccm_009] 检查国家/币种/mcc的本币单笔交易限额"
+	/*
+		国家/币种/mcc交叉检查启用标志 = true
+		币种标识 = 本币币种
+		当前是否生效标志 = true
+		是否禁止此组合交易 = true
+		本币币单笔交易限额 < 国家/币种/mcc交叉的交易金额 
+	*/
+    when
+		TxnInfo( checkList contains "Ccm_009" )
+		TxnInfo( $ccm_localAmt : chbTransAmt )
+		TxnInfo( baseCurrency )
+		$authProduct : AuthProduct( checkEnabled[CheckType.CountryCurrencyMccCrossCheckFlag] )
+		AuthMccStateCurrXVerify( currentActiveFlag)
+		AuthMccStateCurrXVerify( maxAmtLcl < $ccm_localAmt )
+    	$logger : Logger()	
+    then	
+    	$logger.debug("# drools-rule:[Ccm_009]-TO01");
+    	result.put( AuthReason.TO01, $authProduct.reasonActions.get(AuthReason.TO01) );
+end
+
+rule "[Ccm_010] 检查国家/币种/mcc的外币单笔交易限额"
+	/*
+		国家/币种/mcc交叉检查启用标志 = Y
+		币种标识 = 外币币种
+		当前是否生效标志 = true
+		是否禁止此组合交易 = true
+		外币币单笔交易限额 < 国家/币种/mcc交叉的交易金额 
+	*/
+    when
+		TxnInfo( checkList contains "Ccm_010" )
+		TxnInfo( $ccm_foreignAmt : chbTransAmt )
+		TxnInfo( !baseCurrency )
+		$authProduct : AuthProduct( checkEnabled[CheckType.CountryCurrencyMccCrossCheckFlag] )
+		AuthMccStateCurrXVerify( currentActiveFlag)
+		AuthMccStateCurrXVerify( maxAmtFrg < $ccm_foreignAmt )
+    	$logger : Logger()	
+    then	
+    	$logger.debug("# drools-rule:[Ccm_010]-TO01");
+    	result.put( AuthReason.TO01, $authProduct.reasonActions.get(AuthReason.TO01) );
+end

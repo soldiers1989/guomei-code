@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+	
+	<bean id="a200AbstractRptWriter" abstract="true" class="com.sunline.ark.batch.VariableFileItemWriter"> 
+		<property name="lineSeparator" value="\|" />
+		<property name="containLastSeparator" value="false" />
+		<property name="extensionFileName" value=".txt" /> 
+		<property name="validateFileName" value=".txt.ctrl" />
+	</bean>
+	
+	<bean id="ra303" class="com.sunline.ccs.batch.cca300.RA303PrepaymentRemainMsg" scope="step" />
+	<bean id="pa303" class="com.sunline.ccs.batch.cca300.PA303PrepaymentRemainMsg" scope="step"/>
+	<bean id="wa303" parent = "a200AbstractRptWriter" scope="step">
+		<description>贷款余额报表</description>
+		<property name="detailClass" value="com.sunline.ppy.dictionary.exchange.MSLoanMsgItem"/>
+		<property name="resource" ref="resA303PrepaymentRemainMsg"/>
+	</bean>	
+	
+</beans>

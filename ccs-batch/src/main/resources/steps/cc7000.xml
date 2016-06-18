@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+
+	<bean id="r7001" class="com.sunline.ccs.batch.cc7000.R7000TxnProduce" scope="step"/>
+		
+	<bean id="p7001" class="org.springframework.batch.item.support.CompositeItemProcessor">
+		<property name="delegates">
+			<list>
+				<bean class="com.sunline.ccs.batch.cc7000.P7001RepayMsg"/>
+				<bean class="com.sunline.ccs.batch.cc7000.P7011CashLoan"/>
+			</list>
+		</property>
+	</bean>
+	
+	<bean id="w7001ExpiryChangeFile" class="com.sunline.ark.batch.YakPartitionFileItemWriter" scope="step">
+		<description>到期换卡申请文件</description>
+		<property name="fileDetailClass" value="com.sunline.ppy.dictionary.exchange.ExpiryChangeFileItem"/>
+		<property name="resource" ref="resS660001DdSucessMess"/>
+	</bean>
+	<bean id="w7001CashLoanDirectCreditFile" class="com.sunline.ark.batch.YakPartitionFileItemWriter" scope="step">
+		<description>现金分期放款文件</description>
+		<property name="fileDetailClass" value="com.sunline.ppy.dictionary.exchange.DdRequestInterfaceItem"/>
+		<property name="resource" ref="resS660002CashLoanDirectCreditFile"/>
+	</bean>
+	<bean id="w7001DdOnlineSuccFile" class="com.sunline.ark.batch.YakPartitionFileItemWriter" scope="step">
+		<description>约定还款短信</description>
+		<property name="fileDetailClass" value="com.sunline.ppy.dictionary.exchange.DdOnlineSuccIntefaceItem"/>
+		<property name="resource" ref="resS660005DdOnlineSuccFile"/>
+	</bean>
+	
+	<bean id="w7001" class="com.sunline.ark.batch.PropertyDelegateWriter" scope="step">
+	    <property name="writers">
+	    	<map>
+	    		<entry key="expiryChangeFile" value-ref="w7001ExpiryChangeFile"/>
+	    		<entry key="cashLoanDirectCreditFile" value-ref="w7001CashLoanDirectCreditFile"/>
+	    		<entry key="onlineSuccIntefaceFile" value-ref="w7001DdOnlineSuccFile"/>
+	    	</map>
+	    </property>
+	</bean>
+	
+	<bean id="t7001FileMerger" class="com.sunline.ark.batch.FileMergerTasklet">
+		<property name="taskExecutor" ref="asyncTaskExecutor"/>
+		<property name="pollInterval" value="#{env['pollInterval']?:2000}" />
+		<property name="resources" >
+			<list>
+				<ref bean="resS660001DdSucessMess" />
+				<ref bean="resS660002CashLoanDirectCreditFile" />
+				<ref bean="resS660005DdOnlineSuccFile"/>
+			</list>
+		</property>
+	</bean>
+	
+</beans>

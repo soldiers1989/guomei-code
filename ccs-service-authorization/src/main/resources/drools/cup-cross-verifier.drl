@@ -1,0 +1,199 @@
+package com.sunline.ccs.service.authroization
+ 
+import java.util.Map;
+import com.sunline.ccs.service.auth.context.CupMsg;
+import com.sunline.ccs.service.auth.context.TxnInfo;
+import com.sunline.ccs.param.def.enums.AuthTransTerminal;
+import com.sunline.ccs.param.def.enums.AuthReason;
+import com.sunline.ccs.param.def.enums.AuthAction;
+import com.sunline.ppy.dictionary.enums.AuthTransType;
+import com.sunline.ppy.api.MediumInfo;
+import com.sunline.ppy.dictionary.enums.InputSource;
+
+import org.slf4j.Logger;
+global Map<AuthReason, AuthAction> result;
+
+rule "[Cro_001] 卡号检验"
+	/*
+		二磁道前19位为主账号,必须与第2域主账号相同
+		二磁道中23至26位为卡有效期,必须与第14域的卡有效期相同
+	*/
+	when
+		TxnInfo( checkList contains "Cro_001" )
+		CupMsg( exist(35) )  
+		CupMsg( field(2) != f035Track2Cardno ) or
+		CupMsg( exist(14), field(14) != getF035Track2Expiry() )
+		$logger : Logger()	
+	then	
+		$logger.debug("# drools-rule:[Cro_001]-TF05");
+		result.put(AuthReason.TF05, null);
+end
+
+rule "[Cro_002] IC卡一致性05/95存在检查"
+	/*  触发条件
+		1. 第22域服务点输入方式码等于05/95, 但第60.2域的第二位不等于5/6
+
+		05:集成电路卡，磁道信息可靠
+		07:快速 PBOC借贷记IC卡读入（非接触式）
+		95:集成电路卡，卡信息不可靠
+		98:IC卡读入（非接触式）
+	*/
+	when
+		TxnInfo( checkList contains "Cro_002" )
+		TxnInfo( inputSource == InputSource.CUP )
+		CupMsg( f022_1_PosPanEntMode in ("05", "95"), f060_2_2_TermAbility not in ("5","6") )
+    	$logger : Logger()	
+    then	
+    	$logger.debug("# drools-rule:[Cro_002]-TF05");
+    	result.put(AuthReason.TF05, null);
+end
+
+/*rule "[Cro_003] IC卡一致性07/98存在检查"*/
+	/*
+		1. 第22域服务点输入方式码必须等于07/98, 第60.2域的第二位必须不等于6
+		2. 第22域服务点输入方式码必须不等于07/98, 第60.2域的第二位必须等于6
+		05:集成电路卡，磁道信息可靠
+		07:快速 PBOC借贷记IC卡读入（非接触式）
+		95:集成电路卡，卡信息不可靠
+		98:IC卡读入（非接触式）
+	*/
+/*	when
+		TxnInfo( checkList contains "Cro_003" )
+		TxnInfo( inputSource == InputSource.CUP )
+		CupMsg( f022_1_PosPanEntMode in ("07", "98"), f060_2_2_TermAbility != "6" )
+    	$logger : Logger()	
+    then	
+    	$logger.debug("# drools-rule:[Cro_003]-TF05");
+    	result.put(AuthReason.TF05, null);
+end
+
+*/
+
+
+rule "[Cro_004] 卡序列号检查"
+	/*
+		第22域服务点输入方式码必须等于05/07/95/98
+		第23域卡序列号必须大于0
+		第23域：3位定长数字字符
+	*/
+	when
+		TxnInfo( checkList contains "Cro_004" )
+		CupMsg( f022_1_PosPanEntMode in ("05", "07", "95", "98"))
+		CupMsg( !exist(23) ) or CupMsg( exist(23), Integer.parseInt(field(23)) <= 0)
+		$logger : Logger()	
+	then	
+		$logger.debug("# drools-rule:[Cro_004]-TF05");
+		result.put(AuthReason.TF05, null);
+end
+
+rule "[Cro_005] ATM必须存在密码"
+	/*
+		8583交易特征信息中的交易终端必须是ATM
+		第52域个人标识码必须存在
+	*/
+	when
+		TxnInfo( checkList contains "Cro_005" )
+		TxnInfo( transTerminal == AuthTransTerminal.ATM )
+		CupMsg( !exist(52) )
+		$logger : Logger()	
+	then	
+		$logger.debug("# drools-rule:[Cro_005]-TF05");
+		result.put(AuthReason.TF05, null);
+end
+
+rule "[Cro_006] 禁止柜台ATM的消费"
+
+	when
+		TxnInfo( checkList contains "Cro_006" )
+		TxnInfo( transType == AuthTransType.Auth || transType == AuthTransType.AgentDebit || transType == AuthTransType.PreAuth )
+		CupMsg( field(18) == "6010" || field(18) == "6011" )
+		$logger : Logger()	
+	then	
+		$logger.debug("# drools-rule:[Cro_006]-TF05");
+		result.put(AuthReason.TF05, null);
+end
+
+/*rule "[Cro_007] 48域合法性检查"
+	
+		通过verify48tlv方法,验证第48域(附加数据－私有)合法性
+	
+	when
+		TxnInfo( checkList contains "Cro_007" )
+		CupMsg( !verify48tlv(field(48)) )
+		$logger : Logger()	
+	then	
+		$logger.debug("# drools-rule:[Cro_007]-TF04");
+		result.put(AuthReason.TF04, null);
+end*/
+
+rule "[Cro_008] 消费取现交易金额检查"
+	/*
+		
+		第3域交易处理码等于00的情况下,第4域必须存在，并且第4域的交易金额必须大于0
+		00/03(商品和服务):属于消费类
+		01: 现金
+	*/
+	when
+		TxnInfo( checkList contains "Cro_008" )
+		TxnInfo( transType == AuthTransType.Auth || transType == AuthTransType.AgentDebit || transType == AuthTransType.PreAuth || transType == AuthTransType.Cash || transType == AuthTransType.TransferDeditDepos)
+		CupMsg( exist(4), f004_Amount <= 0 )
+		$logger : Logger()	
+	then	
+		$logger.debug("# drools-rule:[Cro_008]-TF03");
+		result.put( AuthReason.TF03, null );
+end
+
+rule "[Cro_009] 交易金额及入账金额必须非负"
+	/*
+		第4域的交易金额必须大于0 或者 第6域的交易金额必须大于0
+	*/
+	when
+		TxnInfo( checkList contains "Cro_009" )
+		CupMsg( f004_Amount < 0 || f006_Amount < 0 ) 
+		$logger : Logger()	
+	then	
+		$logger.debug("# drools-rule:[Cro_009]-TF03");
+		result.put( AuthReason.TF03, null );
+end
+
+rule "[Cro_010] 6域51域组合校验"
+	/*
+		有6域，没有51域，检验通过。
+	*/
+	when
+		TxnInfo( checkList contains "Cro_010" )
+		CupMsg( exist(6) && !exist(51) ) 
+		$logger : Logger()	
+	then	
+		$logger.debug("# drools-rule:[Cro_010]-TF02");
+		result.put( AuthReason.TF02, null );
+end
+
+rule "[Cro_011] 非查询交易的49域校验"
+	/*
+		有6域，没有51域，检验通过。
+	*/
+	when
+		TxnInfo( checkList contains "Cro_011" )
+		TxnInfo( transType != AuthTransType.Inq , transType != AuthTransType.ContractBuildUp , transType != AuthTransType.ContractTermination )
+		CupMsg( !exist(49) ) 
+		$logger : Logger()	
+	then	
+		$logger.debug("# drools-rule:[Cro_011]-TF02");
+		result.put( AuthReason.TF02, null );
+end
+//授权交叉检查不再查询卡介质信息--lsy20151016
+/*
+rule "[Cro_012] MPS报文格式错"
+	/*
+		MPS校验55域，格式错误。
+	*//*
+	when
+		TxnInfo( checkList contains "Cro_012" )
+		MediumInfo( formatError )
+		$logger : Logger()	
+	then	
+		$logger.debug("# drools-rule:[Cro_012]-TF02");
+		result.put( AuthReason.TF02, null );
+end*/
+

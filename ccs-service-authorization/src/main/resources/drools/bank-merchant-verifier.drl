@@ -1,0 +1,153 @@
+package com.sunline.ccs.service.auth.verifier
+
+import java.util.Map;
+import com.sunline.ccs.param.def.enums.AuthReason;
+import com.sunline.ccs.param.def.AuthProduct;
+import com.sunline.ccs.param.def.MerchantTxnCrtl;
+import com.sunline.ppy.dictionary.enums.Indicator;
+import com.sunline.ccs.param.def.enums.CheckType;
+import com.sunline.ppy.dictionary.enums.AuthTransType;
+import com.sunline.ccs.param.def.enums.AuthTransTerminal;
+import com.sunline.ccs.service.auth.context.TxnInfo;
+
+import org.slf4j.Logger;
+global Map<AuthReason, AuthAction> result;
+
+rule "[Mer_001] 检查moto消费交易限制"
+	/*
+	*	交易终端 = Moto消费
+	*	商户限制参数不存在
+	*	检查启用商户限制标志 = true(支持)
+	*	是否强制验证支持Moto消费交易 = true(支持)
+	*/
+    when
+		TxnInfo( checkList contains "Mer_001" )
+		TxnInfo( transTerminal == AuthTransTerminal.PHT )
+		not MerchantTxnCrtl() 
+		$authProduct : AuthProduct( checkEnabled[CheckType.IsForceVerifySupportMerchantMotoExpense], checkEnabled[CheckType.MerchantRestrictFlag] ) 
+    	$logger : Logger()	
+    then	
+    	$logger.debug("# drools-rule:[Mer_001]-TM03");
+		result.put( AuthReason.TM03, $authProduct.reasonActions.get(AuthReason.TM03) );
+end
+
+rule "[Mer_002] 检查电子类消费交易限制"
+	/*
+	*	交易终端 = Moto电子类消费
+	*	商户限制参数不存在
+	*	是否强制验证支持电子类消费交易 = true(支持)
+	*/
+    when
+		TxnInfo( checkList contains "Mer_002" )
+		TxnInfo( transTerminal == AuthTransTerminal.PHE )
+		not MerchantTxnCrtl()
+		$authProduct : AuthProduct( checkEnabled[CheckType.IsForceVerifySupportElectronicCategoryExpense] ,checkEnabled[CheckType.MerchantRestrictFlag])
+    	$logger : Logger()
+   	then	
+   		$logger.debug("# drools-rule:[Mer_002]-TM03");
+		result.put( AuthReason.TM03, $authProduct.reasonActions.get(AuthReason.TM03) );
+end
+
+rule "[Mer_003] 检查分期消费交易限制"
+	/*
+	*	交易类型 = 分期消费
+	*	商户限制参数不存在
+	*	检查启用商户限制标志 = true
+	*	是否强制验证支持分期消费交易 = true(支持)
+	*/
+    when
+		TxnInfo( checkList contains "Mer_003" )
+		TxnInfo( transType == AuthTransType.Loan )
+		not MerchantTxnCrtl()
+		$authProduct : AuthProduct( checkEnabled[CheckType.IsForceVerifySupportInstalment], checkEnabled[CheckType.MerchantRestrictFlag] )
+    	$logger : Logger()	
+    then	
+    	$logger.debug("# drools-rule:[Mer_003]-TM03");
+		result.put( AuthReason.TM03, $authProduct.reasonActions.get(AuthReason.TM03) );
+end
+
+rule "[Mer_004] 检查大额分期消费交易限制"
+	/*
+	*	交易类型 = 大额分期消费
+	*	商户限制参数不存在
+	*	检查启用商户限制标志 = true(支持)
+	*	是否强制验证支持大额分期消费交易 = true(支持)
+	*/
+    when
+		TxnInfo( checkList contains "Mer_004" )
+		TxnInfo( transType == AuthTransType.BigAmountLoan )
+		not MerchantTxnCrtl()
+		$authProduct : AuthProduct( checkEnabled[CheckType.IsForceVerifySupportBigAmountInstalment], checkEnabled[CheckType.MerchantRestrictFlag] )
+    	$logger : Logger()	
+    then	
+    	$logger.debug("# drools-rule:[Mer_004]-TM03");
+		result.put( AuthReason.TM03, $authProduct.reasonActions.get(AuthReason.TM03) );
+end
+
+rule "[Mer_005] 检查是否支持moto消费交易"
+	/*
+	*	交易终端 = moto消费
+	*	检查启用商户限制标志 = true(支持)
+	*	商户限制中是否支持moto消费交易 = N(不支持)
+	*/
+    when
+		TxnInfo( checkList contains "Mer_005" )
+		TxnInfo( transTerminal == AuthTransTerminal.PHT )
+		MerchantTxnCrtl(supportMotoPosInd == Indicator.N )
+		$authProduct : AuthProduct( checkEnabled[CheckType.MerchantRestrictFlag] )
+    	$logger : Logger()	
+    then	
+    	$logger.debug("# drools-rule:[Mer_005]-TM01");
+		result.put( AuthReason.TM01, $authProduct.reasonActions.get(AuthReason.TM01) );
+end
+
+rule "[Mer_006] 检查是否支持电子类消费交易"
+	/*
+	*	交易终端 = Moto电子类消费
+	*	检查启用商户限制标志 = true(支持)
+	*	商户限制中是否支持moto消费交易 = N(不支持)
+	*/
+    when
+		TxnInfo( checkList contains "Mer_006" )
+		TxnInfo( transTerminal == AuthTransTerminal.PHE )
+		MerchantTxnCrtl(supportEmotoInd == Indicator.N )
+		$authProduct : AuthProduct( checkEnabled[CheckType.MerchantRestrictFlag] )
+    	$logger : Logger()	
+    then	
+    	$logger.debug("# drools-rule:[Mer_006]-TM01");
+		result.put( AuthReason.TM01, $authProduct.reasonActions.get(AuthReason.TM01) );
+end
+
+rule "[Mer_007] 检查是否支持分期消费交易"
+	/*
+	*	交易类型 = 分期消费
+	*	检查启用商户限制标志 = true(支持)
+	*	商户限制中是否支持分期消费交易 = N(不支持)
+	*/
+    when
+		TxnInfo( checkList contains "Mer_007" )
+		TxnInfo( transType == AuthTransType.Loan )
+		MerchantTxnCrtl(supportLoanInd == Indicator.N )
+		$authProduct : AuthProduct( checkEnabled[CheckType.MerchantRestrictFlag] )
+    	$logger : Logger()
+   	then	
+   		$logger.debug("# drools-rule:[Mer_007]-TM01");
+		result.put( AuthReason.TM01, $authProduct.reasonActions.get(AuthReason.TM01) );
+end
+
+rule "[Mer_008] 检查是否支持大额分期消费交易"
+	/*
+	*	交易类型 = 大额分期消费
+	*	检查启用商户限制标志 = true(支持)
+	*	商户限制中是否支持大额分期消费交易 = N(不支持)
+	*/
+    when
+		TxnInfo( checkList contains "Mer_008" )
+		TxnInfo( transType == AuthTransType.BigAmountLoan )
+		MerchantTxnCrtl(supportSpecloan == Indicator.N )
+		$authProduct : AuthProduct( checkEnabled[CheckType.MerchantRestrictFlag] )
+    	$logger : Logger()	
+    then	
+    	$logger.debug("# drools-rule:[Mer_008]-TM01");
+		result.put( AuthReason.TM01, $authProduct.reasonActions.get(AuthReason.TM01) );
+end

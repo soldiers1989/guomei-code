@@ -1,0 +1,239 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+
+	<bean id="r9201" class="com.sunline.ccs.batch.cc9200.R9201MasterData" scope="step"/>
+
+	<bean id="p9201" class="org.springframework.batch.item.support.CompositeItemProcessor">
+		<property name="delegates">
+			<list>
+				<bean class="com.sunline.ccs.batch.cc9200.P9202AntiFraud"/>
+				<bean class="com.sunline.ccs.batch.cc9200.P9201Collection"/>
+				<bean class="com.sunline.ccs.batch.cc9200.P9203SynchroInfo"/>
+				<bean class="com.sunline.ccs.batch.cc9200.P9204MonLaundry"/>
+				<bean class="com.sunline.ccs.batch.cc9200.P9205T47"/>
+				<bean class="com.sunline.ccs.batch.cc9200.P9206PayRemindMessage"/>
+			</list>
+		</property>
+	</bean>
+	
+	<!-- 催收账户文件 -->
+<!-- 	<bean id="w9201CtsAccount" class="com.sunline.acm.service.sdk.BatchFileWriter" scope="step">
+		<property name="fileDetailClass" value="com.sunline.ppy.dictionary.exchange.CcExportAccountItem"/>
+		<property name="filename" value="S920001RmasAccount"/>
+	</bean>
+	催收客户文件
+	<bean id="w9201CtsCustomer" class="com.sunline.acm.service.sdk.BatchFileWriter" scope="step">
+		<property name="fileDetailClass" value="com.sunline.ppy.dictionary.exchange.CcExportCustomerItem"/>
+		<property name="filename" value="S920002RmasCustomer"/>
+	</bean>
+	催收联系信息文件
+	<bean id="w9201CtsContact" class="com.sunline.acm.service.sdk.BatchFileWriter" scope="step">
+		<property name="fileDetailClass" value="com.sunline.ppy.dictionary.exchange.CcExportContactItem"/>
+		<property name="filename" value="S920003RmasContact"/>
+	</bean>
+	催收地址信息文件
+	<bean id="w9201CtsAddress" class="com.sunline.acm.service.sdk.BatchFileWriter" scope="step">
+		<property name="fileDetailClass" value="com.sunline.ppy.dictionary.exchange.CcExportAddressItem"/>
+		<property name="filename" value="S920004RmasAddress"/>
+	</bean>
+	催收卡片文件
+	<bean id="w9201CtsCard" class="com.sunline.acm.service.sdk.BatchFileWriter" scope="step">
+		<property name="fileDetailClass" value="com.sunline.ppy.dictionary.exchange.CcExportCardItem"/>
+		<property name="filename" value="S920005RmasCard"/>
+	</bean>
+	催收交易文件
+	<bean id="w9201CtsTxn" class="com.sunline.acm.service.sdk.BatchFileWriter" scope="step">
+		<property name="fileDetailClass" value="com.sunline.ppy.dictionary.exchange.CcExportTxnItem"/>
+		<property name="filename" value="S920006RmasTxn"/>
+	</bean>
+	
+	反欺诈账户文件
+	<bean id="w9201RdsAccount" class="com.sunline.acm.service.sdk.BatchFileWriter" scope="step">
+		<property name="fileDetailClass" value="com.sunline.ppy.dictionary.exchange.CcExportAccountItem"/>
+		<property name="filename" value="S920007RmnsAccount"/>
+	</bean>
+	反欺诈客户文件
+	<bean id="w9201RdsCustomer" class="com.sunline.acm.service.sdk.BatchFileWriter" scope="step">
+		<property name="fileDetailClass" value="com.sunline.ppy.dictionary.exchange.CcExportCustomerItem"/>
+		<property name="filename" value="S920008RmnsCustomer"/>
+	</bean>
+	反欺诈联系信息文件
+	<bean id="w9201RdsContact" class="com.sunline.acm.service.sdk.BatchFileWriter" scope="step">
+		<property name="fileDetailClass" value="com.sunline.ppy.dictionary.exchange.CcExportContactItem"/>
+		<property name="filename" value="S920009RmnsContact"/>
+	</bean>
+	反欺诈卡片文件
+	<bean id="w9201RdsCard" class="com.sunline.acm.service.sdk.BatchFileWriter" scope="step">
+		<property name="fileDetailClass" value="com.sunline.ppy.dictionary.exchange.CcExportCardItem"/>
+		<property name="filename" value="S920010RmnsCard"/>
+	</bean>
+	反欺诈交易文件
+	<bean id="w9201RdsTxn" class="com.sunline.acm.service.sdk.BatchFileWriter" scope="step">
+		<property name="fileDetailClass" value="com.sunline.ppy.dictionary.exchange.CcExportTxnItem"/>
+		<property name="filename" value="S920011RmnsTxn"/>
+	</bean>
+	
+	征审同步卡账文件
+	<bean id="w9201ApsAccountCard" class="com.sunline.acm.service.sdk.BatchFileWriter" scope="step">
+		<property name="fileDetailClass" value="com.sunline.ppy.dictionary.exchange.SynchroCardAcctInfoItem"/>
+		<property name="filename" value="S920012ApsAccountCard"/>
+	</bean>
+	
+	玉溪反洗钱接口文件
+	<bean id="w9201YxMonLaund" class="com.sunline.acm.service.sdk.BatchFileWriter" scope="step">
+		<property name="fileDetailClass" value="com.sunline.ppy.dictionary.exchange.CPSExportMonLaundYXItem"/>
+		<property name="filename" value="S920013MonLaundYX"/>
+	</bean>
+	
+	阜新反洗钱接口文件
+	<bean id="w9201T47IdDeposit" class="com.sunline.acm.service.sdk.BatchFileWriter" scope="step">
+		<description>对私存款账户信息文件</description>
+		<property name="fileDetailClass" value="com.sunline.ppy.dictionary.report.ccs.T47IDDepositItem"/>
+		<property name="filename" value="S9300t47IdDeposit"/>
+		<property name="charset" value="GBK"/>
+	</bean>
+	<bean id="w9201T47Transaction" class="com.sunline.acm.service.sdk.BatchFileWriter" scope="step">
+		<description>交易流水文件</description>
+		<property name="fileDetailClass" value="com.sunline.ppy.dictionary.report.ccs.T47TransactionItem"/>
+		<property name="filename" value="S9300t47Transaction"/>
+	</bean>
+	送短信平台文件
+	<bean id="w9201PayRemindMsg" class="com.sunline.acm.service.sdk.BatchFileWriter" scope="step">
+	        <description>到期还款短信提前X天提醒文件</description>
+	        <property name="fileDetailClass" value="com.sunline.smsd.service.sdk.PayRemindMsgItem"/>
+	        <property name="filename" value="S920014PayRemindMsg"/>
+	</bean> -->
+	
+	<bean id="w9201CtsAccount" class="com.sunline.ark.batch.YakFileItemWriter" scope="step">
+		<description>催收账户文件</description>
+		<property name="fileDetailClass" value="com.sunline.ppy.dictionary.exchange.CcExportAccountItem"/>
+		<property name="resource" ref="resS920001RmasAccount"/>
+	</bean>
+	<bean id="w9201CtsCustomer" class="com.sunline.ark.batch.YakFileItemWriter" scope="step">
+		<description>催收客户文件</description>
+		<property name="fileDetailClass" value="com.sunline.ppy.dictionary.exchange.CcExportCustomerItem"/>
+		<property name="resource" ref="resS920002RmasCustomer"/>
+	</bean>
+	<bean id="w9201CtsContact" class="com.sunline.ark.batch.YakFileItemWriter" scope="step">
+		<description>催收联系信息文件</description>
+		<property name="fileDetailClass" value="com.sunline.ppy.dictionary.exchange.CcExportContactItem"/>
+		<property name="resource" ref="resS920003RmasContact"/>
+	</bean>
+	<bean id="w9201CtsAddress" class="com.sunline.ark.batch.YakFileItemWriter" scope="step">
+		<description>催收地址信息文件</description>
+		<property name="fileDetailClass" value="com.sunline.ppy.dictionary.exchange.CcExportAddressItem"/>
+		<property name="resource" ref="resS920004RmasAddress"/>
+	</bean>
+	
+	<bean id="w9201CtsCard" class="com.sunline.ark.batch.YakFileItemWriter" scope="step">
+		<description>催收卡片文件</description>
+		<property name="fileDetailClass" value="com.sunline.ppy.dictionary.exchange.CcExportCardItem"/>
+		<property name="resource" ref="resS920005RmasCard"/>
+	</bean>
+	<bean id="w9201CtsTxn" class="com.sunline.ark.batch.YakFileItemWriter" scope="step">
+		<description>催收交易文件</description>
+		<property name="fileDetailClass" value="com.sunline.ppy.dictionary.exchange.CcExportTxnItem"/>
+		<property name="resource" ref="resS920006RmasTxn"/>
+	</bean>
+	<bean id="w9201RdsAccount" class="com.sunline.ark.batch.YakFileItemWriter" scope="step">
+		<description>反欺诈账户文件</description>
+		<property name="fileDetailClass" value="com.sunline.ppy.dictionary.exchange.CcExportAccountItem"/>
+		<property name="resource" ref="resS920007RmnsAccount"/>
+	</bean>
+	<bean id="w9201RdsCustomer" class="com.sunline.ark.batch.YakFileItemWriter" scope="step">
+		<description>反欺诈客户文件</description>
+		<property name="fileDetailClass" value="com.sunline.ppy.dictionary.exchange.CcExportCustomerItem"/>
+		<property name="resource" ref="resS920008RmnsCustomer"/>
+	</bean>
+	
+	
+	<bean id="w9201RdsContact" class="com.sunline.ark.batch.YakFileItemWriter" scope="step">
+		<description>反欺诈联系信息文件</description>
+		<property name="fileDetailClass" value="com.sunline.ppy.dictionary.exchange.CcExportContactItem"/>
+		<property name="resource" ref="resS920009RmnsContact"/>
+	</bean>
+	<bean id="w9201RdsCard" class="com.sunline.ark.batch.YakFileItemWriter" scope="step">
+		<description>反欺诈卡片文件</description>
+		<property name="fileDetailClass" value="com.sunline.ppy.dictionary.exchange.CcExportCardItem"/>
+		<property name="resource" ref="resS920010RmnsCard"/>
+	</bean>
+	<bean id="w9201RdsTxn" class="com.sunline.ark.batch.YakFileItemWriter" scope="step">
+		<description>反欺诈交易文件</description>
+		<property name="fileDetailClass" value="com.sunline.ppy.dictionary.exchange.CcExportTxnItem"/>
+		<property name="resource" ref="resS920011RmnsTxn"/>
+	</bean>
+	<bean id="w9201ApsAccountCard" class="com.sunline.ark.batch.YakFileItemWriter" scope="step">
+		<description>征审同步卡账文件 </description>
+		<property name="fileDetailClass" value="com.sunline.ppy.dictionary.exchange.SynchroCardAcctInfoItem"/>
+		<property name="resource" ref="resS920012ApsAccountCard"/>
+	</bean>
+	<bean id="w9201YxMonLaund" class="com.sunline.ark.batch.YakFileItemWriter" scope="step">
+		<description>玉溪反洗钱接口文件</description>
+		<property name="fileDetailClass" value="com.sunline.ppy.dictionary.exchange.CPSExportMonLaundYXItem"/>
+		<property name="resource" ref="resS920013MonLaundYX"/>
+	</bean>
+	<bean id="w9201T47IdDeposit" class="com.sunline.ark.batch.YakFileItemWriter" scope="step">
+		<description>对私存款账户信息文件</description>
+		<property name="fileDetailClass" value="com.sunline.ppy.dictionary.report.ccs.T47IDDepositItem"/>
+		<property name="resource" ref="res9300T47IDDeposit"/>
+	</bean>
+	<bean id="w9201T47Transaction" class="com.sunline.ark.batch.YakFileItemWriter" scope="step">
+		<description>交易流水文件</description>
+		<property name="fileDetailClass" value="com.sunline.ppy.dictionary.report.ccs.T47TransactionItem"/>
+		<property name="resource" ref="res9300t47Transaction"/>
+	</bean>
+	<!-- <bean id="w9201PayRemindMsg" class="com.sunline.ark.batch.YakFileItemWriter" scope="step">
+		<description>到期还款短信提前X天提醒文件 </description>
+		<property name="fileDetailClass" value="com.sunline.smsd.service.sdk.PayRemindMsgItem"/>
+		<property name="resource" ref="resS920014PayRemindMsg"/>
+	</bean> -->
+	
+	<bean id="w9201" class="com.sunline.ark.batch.PropertyDelegateWriter">
+	    <property name="writers">
+	    	<map>
+	    		<entry key="ctsAccount" value-ref="w9201CtsAccount"/>
+	    		<entry key="ctsCustomer" value-ref="w9201CtsCustomer"/>
+	    		<entry key="ctsContact" value-ref="w9201CtsContact"/>
+	    		<entry key="ctsAddress" value-ref="w9201CtsAddress"/>
+	    		<entry key="ctsCard" value-ref="w9201CtsCard"/>
+	    		<entry key="ctsTxn" value-ref="w9201CtsTxn"/>
+	    		<entry key="rdsAccount" value-ref="w9201RdsAccount"/>
+	    		<entry key="rdsCustomer" value-ref="w9201RdsCustomer"/>
+	    		<entry key="rdsContact" value-ref="w9201RdsContact"/>
+	    		<entry key="rdsCard" value-ref="w9201RdsCard"/>
+	    		<entry key="rdsTxn" value-ref="w9201RdsTxn"/>
+	    		<entry key="apsAccountCard" value-ref="w9201ApsAccountCard"/>
+	    		<entry key="yxMonLaund" value-ref="w9201YxMonLaund"/>
+	    		<entry key="t47IdDepositItem" value-ref="w9201T47IdDeposit"/>
+			    <entry key="t47TransactionItems" value-ref="w9201T47Transaction"/>
+<!-- 		    	<entry key="payRemindMsg" value-ref="w9201PayRemindMsg"></entry> -->
+	    	</map>
+	    </property>
+	</bean>
+	<!-- <bean id="e9201" class="com.sunline.fps.service.sdk.batch.DbFileExporter" scope="step">
+	    <property name="instanceName" value="#{env.instanceName}" />
+	    <property name="systemType" value="CCS" />
+		<property name="filenames">
+			<list>
+				<value>S920001RmasAccount</value>
+				<value>S920002RmasCustomer</value>
+				<value>S920003RmasContact</value>
+				<value>S920004RmasAddress</value>
+				<value>S920005RmasCard</value>
+				<value>S920006RmasTxn</value>
+				<value>S920007RmnsAccount</value>
+				<value>S920008RmnsCustomer</value>
+				<value>S920009RmnsContact</value>
+				<value>S920010RmnsCard</value>
+				<value>S920011RmnsTxn</value>
+				<value>S920012ApsAccountCard</value>
+				<value>S920013MonLaundYX</value>
+				<value>S9300t47IdDeposit</value>
+				<value>S9300t47Transaction</value>
+				<value>S920014PayRemindMsg</value>
+			</list>
+		</property>
+	</bean> -->
+</beans>

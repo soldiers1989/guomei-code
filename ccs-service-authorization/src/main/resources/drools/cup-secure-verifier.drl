@@ -1,0 +1,469 @@
+package com.sunline.ccs.service.authroization
+ 
+import java.util.Map;
+import com.sunline.ccs.param.def.enums.AuthReason;
+import com.sunline.ccs.param.def.enums.AuthAction;
+import com.sunline.ccs.param.def.AuthProduct;
+import com.sunline.ppy.api.MediumInfo;
+import com.sunline.ppy.dictionary.enums.Indicator;
+import com.sunline.ccs.param.def.enums.CheckType;
+import com.sunline.ccs.param.def.enums.VerifyEnum;
+import com.sunline.ppy.dictionary.enums.InputSource;
+import com.sunline.ppy.dictionary.enums.AuthTransType;
+import com.sunline.ccs.param.def.enums.AuthVerifyAction;
+import com.sunline.ppy.dictionary.enums.TrackVerifyResult;
+import com.sunline.ccs.param.def.enums.AuthTransTerminal;
+import com.sunline.ppy.dictionary.enums.PasswordVerifyResult;
+import com.sunline.ccs.param.def.enums.AutoType;
+import com.sunline.ccs.infrastructure.shared.model.CcsCardO;
+import com.sunline.ccs.service.auth.context.TxnInfo;
+import com.sunline.ccs.service.auth.context.CupMsg;
+import com.sunline.ccs.param.def.MerchantTxnCrtl;
+import com.sunline.ccs.param.def.ProductCredit;
+import com.sunline.ppy.dictionary.enums.PasswordType;
+import com.sunline.ppy.dictionary.enums.InputSource;
+import com.sunline.ppy.dictionary.enums.TransMedium;
+import com.sunline.ppy.dictionary.enums.VerifyResult;
+import org.apache.commons.lang.StringUtils;
+import org.slf4j.Logger;
+global Map<AuthReason, AuthAction> result;
+
+
+rule "[Sec_001] 逻辑卡上密码错次数超限验证"
+	//逻辑卡密码错误次数 >=产品层最大密码错误次数
+	salience 100
+	when
+		TxnInfo( checkList contains "Sec_001" )
+		TxnInfo( existPassword == PasswordVerifyResult.Approve )
+		CcsCardO( $pinTries : pinTries)
+		ProductCredit( $pinTries >= pinTry )
+		$authProduct : AuthProduct()
+		$logger : Logger()	
+	then	
+		$logger.debug("# drools-rule:[Sec_001]-V005");
+		result.put(AuthReason.V005, $authProduct.reasonActions.get(AuthReason.V005));
+end
+
+
+rule "[Sec_019] 逻辑卡上查询密码错次数超限验证"
+	//逻辑卡查询密码错误次数 >=产品层最大查询密码错误次数
+	salience 100
+	when
+		TxnInfo( checkList contains "Sec_019" )
+		TxnInfo( existPassword == PasswordVerifyResult.Approve )
+		CcsCardO( $pinTries : inqPinTries)
+		ProductCredit( $pinTries >= maxInqPinTry )
+		MediumInfo( pwdType == PasswordType.Q ) 
+		$authProduct : AuthProduct()
+		$logger : Logger()	
+	then	
+		$logger.debug("# drools-rule:[Sec_019]-V005");
+		result.put(AuthReason.V005, $authProduct.reasonActions.get(AuthReason.V005));
+end
+
+rule "[Sec_002] 密码验证-消费免验密码" 
+	when  
+		TxnInfo( checkList contains "Sec_002" )
+		$card : CcsCardO()
+		$TxnInfo : TxnInfo()
+		TxnInfo( existPassword == PasswordVerifyResult.Approve )
+		$authProduct : AuthProduct()
+		// mps密码结果 == 密码错
+		MediumInfo( passwordVerifyResult == PasswordVerifyResult.Decline )
+		// 密码类型 == 支付
+		MediumInfo( pwdType == PasswordType.P )  
+		// 针对凭密消费的控制
+		not (
+				// 品牌接入渠道 == 银联
+				TxnInfo( inputSource == InputSource.CUP || inputSource == InputSource.BANK || inputSource == InputSource.THIR) and 
+				// 消费交易
+				TxnInfo( transType == AuthTransType.Auth || 
+							transType == AuthTransType.PreAuth || 
+							 transType == AuthTransType.AgentDebit || 
+							  transType == AuthTransType.Loan ) and 
+				// 逻辑卡凭密消费标志  == N
+				CcsCardO( posPinVerifyInd == Indicator.N )
+			)
+		// 针对境外免验的控制
+		not (
+				// 品牌接入渠道 == 银联
+				TxnInfo( inputSource == InputSource.CUP || inputSource == InputSource.BANK || inputSource == InputSource.THIR ) and 
+				// 消费交易
+				TxnInfo( transType == AuthTransType.Auth || 
+							transType == AuthTransType.PreAuth || 
+							 transType == AuthTransType.AgentDebit || 
+							  transType == AuthTransType.Loan ) and 
+				// 银联境外免验 == true(true：免验)
+				TxnInfo( abroadNoVerify ) and  
+				// 产品层银联境外免验标志 == true(true：免验)
+				AuthProduct( checkEnabled[CheckType.ExpenseUnionpayOverseasCheck] ) 
+			)
+		$logger : Logger()	
+	then	
+		$logger.debug("# drools-rule:[Sec_002]-V004");
+		$card.setPinTries($card.getPinTries() + 1);
+		$card.setLastPinTriesTime($TxnInfo.getSysOlTime());
+		$card.setLastUpdateBizDate($TxnInfo.getBizDate());
+		result.put(AuthReason.V004, $authProduct.reasonActions.get(AuthReason.V004));
+end
+
+rule "[Sec_003] 查询密码" 
+	when  
+		TxnInfo( checkList contains "Sec_003" )
+		$card : CcsCardO()
+		$TxnInfo : TxnInfo()
+		TxnInfo( existPassword == PasswordVerifyResult.Approve )
+		$authProduct : AuthProduct()
+		// mps密码结果 == 密码错
+		MediumInfo( passwordVerifyResult == PasswordVerifyResult.Decline )  
+		// 密码类型 == 查询
+		MediumInfo( pwdType == PasswordType.Q )
+		$logger : Logger()	
+	then	
+		$logger.debug("# drools-rule:[Sec_003]-V020");
+		$card.setInqPinTries($card.getInqPinTries() + 1);
+		$card.setLastInqPinTriesTime($TxnInfo.getSysOlTime());
+		$card.setLastUpdateBizDate($TxnInfo.getBizDate());
+		result.put(AuthReason.V020, $authProduct.reasonActions.get(AuthReason.V020));
+end
+
+rule "[Sec_004] 二磁道验证"
+	//产品层参数2磁检测标志为Yes(检验)且卡管结果为2磁不正常SecondTrackFlag
+	when
+		TxnInfo( checkList contains "Sec_004" )
+		$product:AuthProduct(checkEnabled[CheckType.SecondTrackFlag])
+		MediumInfo(track2VerifyResult == TrackVerifyResult.LengthError)
+		$logger : Logger()	
+	then	
+		$logger.debug("# drools-rule:[Sec_004]-V002");
+	    result.put(AuthReason.V002, $product.reasonActions.get(AuthReason.V002));
+end
+
+rule "[Sec_005] 一磁道验证"
+	//产品层参数1磁检测标志为Yes(检验)且卡管结果为1磁不正常
+	when
+		TxnInfo( checkList contains "Sec_005" )
+		AuthProduct(checkEnabled[CheckType.FirstTrackFlag])
+		MediumInfo(track1VerifyResult == TrackVerifyResult.LengthError)
+		$authProduct : AuthProduct()
+		$logger : Logger()	
+	then	
+		$logger.debug("# drools-rule:[Sec_005]-V001");
+		result.put(AuthReason.V001, $authProduct.reasonActions.get(AuthReason.V001));
+end
+
+rule "[Sec_006] 三磁道验证"
+	//产品层参数3磁检测标志为true且卡管结果为3磁不正常
+	when
+		TxnInfo( checkList contains "Sec_006" )
+		AuthProduct(checkEnabled[CheckType.ThirdTrackFlag]) 
+		MediumInfo(track3VerifyResult == TrackVerifyResult.LengthError)
+		$authProduct : AuthProduct()
+		$logger : Logger()	
+	then	
+		$logger.debug("# drools-rule:[Sec_006]-V003");
+		result.put(AuthReason.V003, $authProduct.reasonActions.get(AuthReason.V003));
+end
+
+
+rule "[Sec_007] 凭密消费密码验证"
+	// 渠道=银联或行内
+	// 消费交易 && 逻辑卡凭密消费 &&产品层凭密消费强制验密ind==‘Yes’
+	// 密码未上送&& b022Entrymode==密码可输入
+	when  
+		TxnInfo( checkList contains "Sec_007" )
+		// 品牌接入渠道 == 银联
+		TxnInfo( inputSource == InputSource.CUP || inputSource == InputSource.BANK || inputSource == InputSource.THIR )
+		//消费交易
+		TxnInfo( transType == AuthTransType.Loan || transType == AuthTransType.Auth || transType == AuthTransType.PreAuth || transType == AuthTransType.AgentDebit ) 
+		//逻辑卡凭密消费
+		CcsCardO(posPinVerifyInd ==  Indicator.Y)  
+		//产品层凭密消费强制验密ind==true
+		$authProduct : AuthProduct(checkEnabled[CheckType.ResortPasswordVerify])
+		//密码未上送
+		MediumInfo(passwordVerifyResult == PasswordVerifyResult.NoThisField)
+		not(
+		    //非银联境外免验
+			TxnInfo( abroadNoVerify ) 
+			and
+			// 产品层银联境外免验标志 == true(true：免验)
+			AuthProduct( checkEnabled[CheckType.ExpenseUnionpayOverseasCheck] ) 
+			)
+		CupMsg( field(22)!= "012" )
+		
+		$logger : Logger()	
+	then	
+		$logger.debug("# drools-rule:[Sec_007]-V004");
+		result.put(AuthReason.V004, $authProduct.reasonActions.get(AuthReason.V004));
+end
+
+rule "[Sec_008] 银联有卡自助 强制验证启用"
+	//品牌接入渠道 == 银联 && （消费交易or预授权交易or查询交易） && 产品层银联有卡自助强制验密标志==‘Yes’
+	
+	when  
+		TxnInfo( checkList contains "Sec_008" )
+		//品牌接入渠道 == 银联
+		TxnInfo(inputSource == InputSource.CUP )  
+		//消费交易or预授权交易or查询交易
+		TxnInfo(transType in (AuthTransType.Auth, AuthTransType.Inq, AuthTransType.PreAuth, AuthTransType.Loan)) 
+		//产品层银联有卡自助强制验密标志==true
+		$authProduct : AuthProduct(checkEnabled[CheckType.UnionpayCardSelfCheck])
+		//密码未上送
+		MediumInfo(passwordVerifyResult == PasswordVerifyResult.NoThisField) 
+		//有卡自助
+		TxnInfo( autoType  ==  AutoType.ACardSelfService   )
+		
+		$logger : Logger()	
+	then	
+		$logger.debug("# drools-rule:[Sec_008]-V004");
+		result.put(AuthReason.V004, $authProduct.reasonActions.get(AuthReason.V004));
+end
+
+rule "[Sec_009] 无卡消费电子类密码验证"
+	//消费交易 && posmoto-电子 && 产品层无卡消费电子类强制验密标志==‘Yes’ 无卡消费电子类
+	
+	when  
+		TxnInfo( checkList contains "Sec_009" )
+		//消费交易
+		TxnInfo( transTerminal == AuthTransTerminal.PHE ) 
+		// 产品层无卡消费电子类强制验密标志==‘Yes’ 
+		$authProduct :AuthProduct(verifyActions[VerifyEnum.CardNotExpenseElectronVerifyPassword] == AuthVerifyAction.Must)  
+		//密码未上送
+		MediumInfo(passwordVerifyResult == PasswordVerifyResult.NoThisField)
+		//交易介质=无卡
+		TxnInfo( transMedium == TransMedium.NoCard )
+		$logger : Logger()	
+	then	
+		$logger.debug("# drools-rule:[Sec_009]-V004");
+		result.put(AuthReason.V004, $authProduct.reasonActions.get(AuthReason.V004));
+end
+
+rule "[Sec_010] 分期消费密码验证"
+	// 分期交易&& 产品层分期强制验密标志==‘Yes’
+	
+	when  
+		TxnInfo( checkList contains "Sec_010" )
+		//分期交易
+		TxnInfo(transType == AuthTransType.Loan ) 
+		//人工授权标志为N中此规则，内管POS分期送A
+		TxnInfo(manualAuthFlag == ManualAuthFlag.N)
+		//产品层分期强制验密标志==‘Yes’
+		$authProduct : AuthProduct(verifyActions[VerifyEnum.InstalmentExpenseVerify] == AuthVerifyAction.Must)  
+		//密码未上送
+		MediumInfo(passwordVerifyResult == PasswordVerifyResult.NoThisField)
+		$logger : Logger()	
+	then	
+		$logger.debug("# drools-rule:[Sec_010]-V004");
+		result.put(AuthReason.V004, $authProduct.reasonActions.get(AuthReason.V004));
+end
+
+rule "[Sec_011] ATM交易密码验证"
+	// 接入终端==atm && 产品层atm强制验密标志==‘Yes’
+	
+	when  
+		TxnInfo( checkList contains "Sec_011" )
+		// 接入终端==atm
+		TxnInfo(transTerminal == AuthTransTerminal.ATM )  
+		// 产品层atm强制验密标志==‘Yes’
+		$authProduct : AuthProduct(verifyActions[VerifyEnum.AtmVerify]  == AuthVerifyAction.Must )  
+		//AIC2.7 银联升级  账户验证不检查密码
+		TxnInfo(transType != AuthTransType.AcctVerfication )
+		//密码未上送
+		MediumInfo(passwordVerifyResult == PasswordVerifyResult.NoThisField)
+		$logger : Logger()	
+	then	
+		$logger.debug("# drools-rule:[Sec_011]-V004");
+		result.put(AuthReason.V004, $authProduct.reasonActions.get(AuthReason.V004));
+end
+
+rule "[Sec_012] 取现密码验证"
+	//  取现交易  && 产品层取现强制验密标志==‘Yes
+	
+	when  
+		TxnInfo( checkList contains "Sec_012" )
+		//取现交易 
+		TxnInfo(transType == AuthTransType.Cash || transType == AuthTransType.TransferDeditDepos ) 
+		//产品层取现强制验密标志==‘Yes
+		$authProduct :AuthProduct(verifyActions[VerifyEnum.CashVerify]  == AuthVerifyAction.Must )  
+		//密码未上送
+		MediumInfo(passwordVerifyResult == PasswordVerifyResult.NoThisField)
+		$logger : Logger()	
+	then	
+		$logger.debug("# drools-rule:[Sec_012]-V004");
+		result.put(AuthReason.V004, $authProduct.reasonActions.get(AuthReason.V004));
+end
+
+rule "[Sec_013] CVV验证"
+	
+	when  
+		TxnInfo( checkList contains "Sec_013" )
+		//cvv错
+		MediumInfo(cvvVerifyResult == PasswordVerifyResult.Decline)
+		$authProduct :AuthProduct()  
+		$logger : Logger()	
+	then	
+		$logger.debug("# drools-rule:[Sec_013]-V006");
+		result.put(AuthReason.V006, $authProduct.reasonActions.get(AuthReason.V006));
+end
+
+rule "[Sec_014] cvv2验证"
+	
+	when  
+		TxnInfo( checkList contains "Sec_014" )
+		//cvv2错
+		MediumInfo(cvv2VerifyResult == PasswordVerifyResult.Decline)
+		//AIC2.7 银联升级
+		TxnInfo( verifCvv2 )
+		$authProduct : AuthProduct()  
+		$logger : Logger()	
+	then	
+		$logger.debug("# drools-rule:[Sec_014]-V008");
+		result.put(AuthReason.V008, $authProduct.reasonActions.get(AuthReason.V008));
+end
+
+rule "[Sec_015] moto交易商户强制验证cvv2但未上送验证"
+	
+	when  
+		TxnInfo( checkList contains "Sec_015" )
+		//AIC2.7银联升级-新增行内条件
+		TxnInfo(inputSource == InputSource.BANK)
+		//交易终端为moto手工 or moto电子交易
+		TxnInfo(transTerminal == AuthTransTerminal.PHT || transTerminal == AuthTransTerminal.PHE )
+		//商户限制启用标志参数 == true
+		$authProduct : AuthProduct(checkEnabled[CheckType.MerchantRestrictFlag])
+		//商户强制验证moto类交易cvv2标志 == Y
+		MerchantTxnCrtl(forceMotoRetailCvv2Ind == Indicator.Y)
+		//cvv2未上送
+		MediumInfo(cvv2VerifyResult == PasswordVerifyResult.NoThisField)
+		$logger : Logger()	
+	then	
+		$logger.debug("# drools-rule:[Sec_015]-V028");
+		result.put(AuthReason.V028, $authProduct.reasonActions.get(AuthReason.V028));
+end
+
+rule "[Sec_016] 产品参数强制验证moto手工类交易cvv2"
+	
+	when  
+		TxnInfo( checkList contains "Sec_016" )
+		//AIC2.7银联升级-新增行内条件
+		TxnInfo(inputSource == InputSource.BANK)
+		//交易终端为POSMOTO手工 
+		TxnInfo(transTerminal == AuthTransTerminal.PHT)
+		//产品参数强制验证moto手工类交易cvv2
+		$authProduct :AuthProduct(verifyActions[VerifyEnum.CardNotMotoVerifyCvv2] == AuthVerifyAction.Must)
+		//cvv2未上送
+		MediumInfo(cvv2VerifyResult == PasswordVerifyResult.NoThisField)
+		$logger : Logger()	
+	then	
+		$logger.debug("# drools-rule:[Sec_016]-V029");
+		result.put(AuthReason.V029, $authProduct.reasonActions.get(AuthReason.V029));
+end
+
+rule "[Sec_017] 产品参数强制验证moto电子类交易cvv2"
+	
+	when  
+		TxnInfo( checkList contains "Sec_017" )
+		//AIC2.7银联升级-新增行内条件
+		TxnInfo(inputSource == InputSource.BANK)
+		//交易终端为POSMOTO电子
+		TxnInfo(transTerminal == AuthTransTerminal.PHE)
+		//产品参数强制验证moto电子类交易cvv2
+		$authProduct :AuthProduct(verifyActions[VerifyEnum.CardNotElectronVerifyCvv2] == AuthVerifyAction.Must)
+		//cvv2未上送
+		MediumInfo(cvv2VerifyResult == PasswordVerifyResult.NoThisField)
+		$logger : Logger()	
+	then	
+		$logger.debug("# drools-rule:[Sec_017]-V030");
+		result.put(AuthReason.V030, $authProduct.reasonActions.get(AuthReason.V030)); 
+end
+
+rule "[Sec_018] 产品参数人工授权强制验证cvv2"
+	
+	when  
+		TxnInfo( checkList contains "Sec_018" )
+		//产品参数强制验人工授权交易验证cvv2
+		$authProduct :AuthProduct(verifyActions[VerifyEnum.ManualAuthVerifyCvv2] == AuthVerifyAction.Must)
+		//cvv2未上送
+		MediumInfo(cvv2VerifyResult == PasswordVerifyResult.NoThisField)
+		$logger : Logger()	
+	then	
+		$logger.debug("# drools-rule:[Sec_018]-V031");
+		result.put(AuthReason.V031, $authProduct.reasonActions.get(AuthReason.V031)); 
+end
+
+rule "[Sec_020] 辅助验证姓名检查不相等"
+	
+	when  
+		TxnInfo( checkList contains "Sec_020" )
+		TxnInfo( transType == AuthTransType.Credit || transType == AuthTransType.AgentCredit || transType == AuthTransType.TransferCredit )
+    	CupMsg( StringUtils.isNotBlank( f061_6_NM_ChbName1 ) )
+    	TxnInfo( chbNameNMVerifyResult == VerifyResult.Decline )
+    	$authProduct : AuthProduct()
+		$logger : Logger()	
+	then	
+		$logger.debug("# drools-rule:[Sec_020]-V041");
+		result.put( AuthReason.V041, $authProduct.reasonActions.get( AuthReason.V041 ) );
+end
+
+rule "[Sec_021] CVV是否锁定"
+	
+	when  
+		TxnInfo( checkList contains "Sec_021" )
+		MediumInfo( cvvVerifyResult != PasswordVerifyResult.NoThisField , cvvLockResult == PasswordVerifyResult.Decline)
+		$authProduct : AuthProduct()
+		$logger : Logger()	
+	then	
+		$logger.debug("# drools-rule:[Sec_021]-V007");
+		result.put(AuthReason.V007, $authProduct.reasonActions.get(AuthReason.V007));
+end
+
+rule "[Sec_022] ICVN是否锁定"
+	
+	when  
+		TxnInfo( checkList contains "Sec_022" )
+		MediumInfo( icvnVerifyResult != PasswordVerifyResult.NoThisField , icvnLockResult == PasswordVerifyResult.Decline)
+		$authProduct : AuthProduct()
+		$logger : Logger()	
+	then	
+		$logger.debug("# drools-rule:[Sec_022]-I011");
+		result.put(AuthReason.I011, $authProduct.reasonActions.get(AuthReason.I011));
+end
+
+rule "[Sec_023] CVV2是否锁定"
+	
+	when  
+		TxnInfo( checkList contains "Sec_023" )
+		MediumInfo( cvv2VerifyResult != PasswordVerifyResult.NoThisField , cvv2LockResult == PasswordVerifyResult.Decline)
+		$authProduct : AuthProduct()
+		$logger : Logger()	
+	then	
+		$logger.debug("# drools-rule:[Sec_023]-V048");
+		result.put(AuthReason.V048, $authProduct.reasonActions.get(AuthReason.V048));
+end
+
+rule "[Sec_024] 密码是否存在"
+	
+	when
+		// 存在52域，且未设置过密码
+		TxnInfo( checkList contains "Sec_024" )
+		CupMsg( exist(52) )
+		TxnInfo( existPassword == PasswordVerifyResult.Decline )
+		
+		// @since 2.5.0 不凭密消费的客户，做消费交易时不检查该规则（即使上送了52域）
+		not (
+				TxnInfo( inputSource == InputSource.CUP || inputSource == InputSource.BANK || inputSource == InputSource.THIR) 
+				and 
+				TxnInfo( transType == AuthTransType.Auth || 
+							transType == AuthTransType.PreAuth || 
+							 transType == AuthTransType.AgentDebit || 
+							  transType == AuthTransType.Loan ) 
+				and 
+				// 逻辑卡凭密消费标志  == N
+				CcsCardO( posPinVerifyInd == Indicator.N )
+			)
+		$authProduct : AuthProduct()
+		$logger : Logger()	
+	then	
+		$logger.debug("# drools-rule:[Sec_024]-V049");
+		result.put(AuthReason.V049, $authProduct.reasonActions.get(AuthReason.V049));
+end

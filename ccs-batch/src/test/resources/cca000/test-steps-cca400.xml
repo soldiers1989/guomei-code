@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+
+	<bean id="abstractMsgWriter" abstract="true" class="com.sunline.ark.batch.VariablePartitionFileItemWriter" >
+		<property name="lineSeparator" value="\|" />
+		<property name="containLastSeparator" value="false" />
+		<property name="fileDetailClass" value="com.sunline.ppy.dictionary.exchange.MSLoanMsgItem" />
+	</bean>
+	
+	<bean id="ra301" class="com.sunline.ccs.batch.cca300.RA301MSLoanRepayMsg" scope="step" />
+	<bean id="pa301" class="com.sunline.ccs.batch.cca300.PA301MSLoanRepayMsg" scope="step" />
+	<bean id="wa301" parent = "abstractMsgWriter" scope="step">
+		<description>马上贷还款提醒短信文件</description>
+		<property name="resource" ref="resA301MSLoanRepayMsg"/>
+	</bean>	
+	
+	<bean id="ra302" class="com.sunline.ccs.batch.cca300.RA302WhiteListRepayMsg" scope="step" />
+	<bean id="pa302" class="com.sunline.ccs.batch.cca300.PA302WhiteListRepayMsg" scope="step"/>
+	<bean id="wa302" parent = "abstractMsgWriter" scope="step">
+		<description>白名单还款提醒短信文件</description>
+		<property name="resource" ref="resA302WhiteListRepayMsg"/>
+	</bean>
+	
+	<bean id="ra303" class="com.sunline.ccs.batch.cca300.RA303PrepaymentRemainMsg" scope="step" />
+	<bean id="pa303" class="com.sunline.ccs.batch.cca300.PA303PrepaymentRemainMsg" scope="step"/>
+	<bean id="wa303" parent = "abstractMsgWriter" scope="step">
+		<description>提前还款提醒短信文件</description>
+		<property name="resource" ref="resA303PrepaymentRemainMsg"/>
+	</bean>
+	
+	<bean id="ra304" class="com.sunline.ccs.batch.cca300.RA304RefundMsg" scope="step" />
+	<bean id="pa304" class="com.sunline.ccs.batch.cca300.PA304RefundMsg" scope="step"/>
+	<bean id="wa304" parent = "abstractMsgWriter" scope="step">
+		<description>退货欠款提醒短信文件</description>
+		<property name="resource" ref="resA304RefundMsg"/>
+	</bean>
+	<!-- 批量扣款成功通知客户短信 -->
+	<bean id="ra305" class="com.sunline.ccs.batch.cca300.RA305BatchCutSuccessMsg" scope="step" />
+	<bean id="pa305" class="com.sunline.ccs.batch.cca300.PA305BatchCutSuccessMsg" scope="step"/>
+	<bean id="wa305" parent = "abstractMsgWriter" scope="step">
+		<description>批量扣款成功通知客户短信文件</description>
+		<property name="resource" ref="resA305BatchCutSuccessMsg"/>
+	</bean>
+	
+	<bean id="ma300" class="com.sunline.ark.batch.VariableFileMergerTasklet">
+		<property name="taskExecutor" ref="asyncTaskExecutor"/>
+		<property name="pollInterval" value="#{env['pollInterval']?:2000}" />
+		<property name="resources" >
+			<list>
+				<ref bean="resA301MSLoanRepayMsg"/>
+				<ref bean="resA302WhiteListRepayMsg"/>
+				<ref bean="resA303PrepaymentRemainMsg"/>
+				<ref bean="resA304RefundMsg"/>
+				<ref bean="resA305BatchCutSuccessMsg"/>
+			</list>
+		</property>
+		<property name="fileSuffix" value="" />
+	</bean>
+	
+	<bean id="abstractSettleWriter" abstract="true" class="com.sunline.ark.batch.VariablePartitionFileItemWriter" >
+		<property name="lineSeparator" value="\|" />
+		<property name="containLastSeparator" value="true" />
+	</bean>
+	
+	<!-- 批量完成，合并短信文件 -->	
+	<bean id="mergeSmsFile" class="com.sunline.ccs.batch.common.SimpleFileMergeTasklet" >
+		<property name="sources">
+			<list>
+				<ref bean="resA300RepaymentFailMsg" />
+				<ref bean="resA301MSLoanRepayMsg" />
+				<ref bean="resA302WhiteListRepayMsg" />
+				<ref bean="resS8502AcctCrlmtAdjMsg" />
+				<ref bean="resA303PrepaymentRemainMsg" />
+				<ref bean="resA304RefundMsg" />
+				<ref bean="resA305BatchCutSuccessMsg" />
+			</list>
+		</property>
+		<property name="target" ref="resCca900MSxfSmsFile" />
+		<property name="isEndOfNewLine" value="true" />
+	</bean>
+	
+	<!-- 结算记录 - 代收费-->
+	<bean id="ra401" class="com.sunline.ccs.batch.cca400.RA401SettleReplaceFee" scope="step" />
+	<bean id="wa401" class="com.sunline.ark.batch.NullItemWriter" scope="step" />
+	
+	<!-- 结算记录 - 趸交费 -->
+	<bean id="ra402" class="com.sunline.ccs.batch.cca400.RA402SettlePremiumAmt" scope="step" />
+	<bean id="wa402" class="com.sunline.ark.batch.NullItemWriter" scope="step" />
+		
+	<bean id="ra408" class="com.sunline.ccs.batch.cca400.RA408SettleFile" scope="step" />
+	<bean id="wa408" parent="abstractSettleWriter" scope="step" >
+		<description>结算文件</description>
+		<property name="resource" ref="resA401SettleReqRpt"/>
+		<property name="fileDetailClass" value="com.sunline.ccs.batch.cca400.item.SettleReqRptItem" />
+	</bean>	
+	
+	<bean id="ma400" class="com.sunline.ark.batch.VariableFileMergerTasklet">
+		<property name="taskExecutor" ref="asyncTaskExecutor"/>
+		<property name="pollInterval" value="#{env['pollInterval']?:2000}" />
+		<property name="resources" >
+			<list>
+				<ref bean="resA401SettleReqRpt"/>
+			</list>
+		</property>
+		<property name="fileSuffix" value=".txt" />
+		<property name="valiFileSuffix" value=".ctrl" />
+	</bean>
+	
+	<bean id="oa409" class="com.sunline.ccs.batch.cca400.OA409SendSettleRpt" scope="step">
+		<description>发送结算文件</description>
+		<property name="ftpOperations" ref="settlePlatformFtpClient"/>
+		<property name="extensionFileName" value=".txt" />
+		<property name="validateFileName" value=".ctrl" />
+		<property name="filePaths">
+			<map>
+				<entry key="#{env.settlePlatFormFilePath}">
+					<list>
+						<ref bean="resA401SettleReqRpt" />
+					</list>
+				</entry>
+			</map>
+		</property>
+	</bean>
+	
+</beans>

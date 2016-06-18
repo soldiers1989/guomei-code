@@ -1,0 +1,203 @@
+package com.sunline.ccs.service.authroization
+ 
+
+
+import com.sunline.ccs.infrastructure.shared.model.CcsAcctO;
+import com.sunline.ccs.infrastructure.shared.model.CcsCardO;
+import com.sunline.ccs.param.def.LoanMerchant;
+import com.sunline.ccs.param.def.Program;
+import com.sunline.ccs.param.def.ProgramFeeDef;
+import com.sunline.ccs.param.def.enums.ProgramStatus;
+import com.sunline.ccs.param.def.enums.AuthTransTerminal;
+import com.sunline.ccs.param.def.enums.CtrlListInd;
+import com.sunline.ccs.param.def.AuthProduct;
+import com.sunline.ccs.param.def.enums.AuthReason;
+import com.sunline.ccs.param.def.enums.RecStatus;
+import com.sunline.ccs.service.auth.context.CupMsg;
+import com.sunline.ccs.service.auth.context.LoanInfo;
+import com.sunline.ccs.service.auth.context.TxnInfo;
+import com.sunline.ppy.dictionary.enums.LoanFeeMethod;
+import com.sunline.ppy.dictionary.enums.Indicator;
+import com.sunline.ppy.dictionary.enums.BscSuppIndicator;
+import com.sunline.ppy.dictionary.enums.BscSuppIndicator;
+
+import org.slf4j.Logger;
+global Map<AuthReason, AuthAction> result;
+
+rule "[Loan_001] 检查分期交易期数验证"
+	when
+		// 没有找到对应期数
+		TxnInfo( checkList contains "Loan_001" )
+		LoanInfo(programFeeDef == null)
+		LoanInfo($lit : loanInitTerm)
+		$authProduct : AuthProduct()
+		$logger : Logger()
+	then		
+		$logger.debug("# drools-rule:[Loan_001]-TL51");
+		result.put( AuthReason.TL51, $authProduct.reasonActions.get( AuthReason.TL51 ) );
+end
+
+rule "[Loan_002] 检查分期交易金额验证"
+	when
+		TxnInfo( checkList contains "Loan_002" )
+		// 获取期数
+		LoanInfo($pfd: programFeeDef ,$pfd != null)
+		// 获得活动计划
+		LoanInfo($pro:program)
+		// 当前交易金额
+		TxnInfo($cta:chbTransAmt)
+		// 当前交易金额：大于活动最大金额、小于活动最小金额、大于分期最大金额、小于分期最小金额
+		LoanInfo($cta < $pro.programMinAmount || $cta > $pro.programMaxAmount || $cta < $pfd.minAmount || $cta > $pfd.maxAmount )
+		$authProduct : AuthProduct()
+		$logger : Logger()
+	then		
+		$logger.debug("# drools-rule:[Loan_002]-B011Trace");
+		$logger.debug("# drools-rule:当前交易金额："+$cta);
+		$logger.debug("# drools-rule:活动最小金额："+$pro.programMinAmount);
+		$logger.debug("# drools-rule:活动最大金额："+$pro.programMaxAmount);
+		$logger.debug("# drools-rule:分期最小金额："+$pfd.minAmount);
+		$logger.debug("# drools-rule:分期最大金额："+$pfd.maxAmount);
+		result.put( AuthReason.B011, $authProduct.reasonActions.get( AuthReason.B011 ) );
+end
+
+rule "[Loan_003] 检查分期活动状态验证"
+	when
+		TxnInfo( checkList contains "Loan_003" )
+		// 分期活动状态不是[使用中]
+		LoanInfo(program != null , program.programStatus != ProgramStatus.A)
+		$authProduct : AuthProduct()
+		$logger : Logger()
+	then		
+		$logger.debug("# drools-rule:[Loan_003]-TL52");
+		result.put( AuthReason.TL52, $authProduct.reasonActions.get( AuthReason.TL52 ) );
+end
+
+rule "[Loan_004] 检查分期活动有效期验证"
+	when
+		TxnInfo( checkList contains "Loan_004" )
+		LoanInfo(program != null)
+		// 有效期过期
+		TxnInfo($bizDate : bizDate)
+		LoanInfo($bizDate < program.programStartDate || $bizDate > program.programEndDate)
+		$authProduct : AuthProduct()
+		$logger : Logger()
+	then
+		$logger.debug("# drools-rule:[Loan_004]-TL53");
+		result.put( AuthReason.TL53, $authProduct.reasonActions.get( AuthReason.TL53 ) );
+end
+
+rule "[Loan_005] 检查发卡分行是否支持"
+	when
+		TxnInfo( checkList contains "Loan_005" )
+		// 判定发卡分行支持性
+		CcsAcctO($owningBranch : owningBranch)
+		LoanInfo(program != null , program.ctrlBranchInd == CtrlListInd.A , program.ctrlBranchList contains $owningBranch )
+		or
+		LoanInfo(program != null , program.ctrlBranchInd == CtrlListInd.O , program.ctrlBranchList not contains $owningBranch )
+		$authProduct : AuthProduct()
+		$logger : Logger()	
+	then		
+		$logger.debug("# drools-rule:[Loan_005]-TL54");
+		result.put( AuthReason.TL54, $authProduct.reasonActions.get( AuthReason.TL54 ) );
+end
+
+rule "[Loan_006] 检查卡产品是否支持"
+	when
+		// 判定卡产品支持性- （#################暂时使用CARD上面的###############）
+		CcsCardO( $productCd : productCd )
+		LoanInfo(program != null , program.ctrlProdCreditInd == CtrlListInd.A , program.ctrlProdCreditList contains $productCd )
+		or
+		LoanInfo(program != null , program.ctrlProdCreditInd == CtrlListInd.O , program.ctrlProdCreditList not contains $productCd )
+		$authProduct : AuthProduct()
+		$logger : Logger()
+	then	
+		$logger.debug("# drools-rule:[Loan_006]-TL55");
+		result.put( AuthReason.TL55, $authProduct.reasonActions.get( AuthReason.TL55 ) );
+end
+
+rule "[Loan_007] 检查商户类型是否支持"
+	when
+		TxnInfo( checkList contains "Loan_007" )
+		// 判定商户类型支持性
+		CupMsg($mcc : field(18))
+		LoanInfo(program != null ,  program.ctrlMccInd == CtrlListInd.A , program.ctrlMccList contains $mcc )
+		or
+		LoanInfo(program != null ,  program.ctrlMccInd == CtrlListInd.O , program.ctrlMccList not contains $mcc )
+		$authProduct : AuthProduct()
+		$logger : Logger()	
+	then	
+		$logger.debug("# drools-rule:[Loan_007]-TL56");
+		result.put( AuthReason.TL56, $authProduct.reasonActions.get( AuthReason.TL56 ) );
+end
+
+rule "[Loan_008] 检查商户号是否支持"
+	when
+		TxnInfo( checkList contains "Loan_008" )
+		// 判定商户号支持性
+		LoanInfo( program != null , $merchantId : merchantId , program.programMerList not contains merchantId )
+		$authProduct : AuthProduct()
+		$logger : Logger()	
+	then	
+		$logger.debug("# drools-rule:[Loan_008]-TL57");
+		result.put( AuthReason.TL57, $authProduct.reasonActions.get( AuthReason.TL57 ) );
+end
+
+rule "[Loan_009] 检查附卡是否支持"
+	when
+		TxnInfo( checkList contains "Loan_009" )
+		// 判定附卡支持性
+		CcsCardO($bscSuppInd : bscSuppInd)
+		LoanInfo( program != null , program.programSuppInd == Indicator.N , $bscSuppInd == BscSuppIndicator.S )
+		$authProduct : AuthProduct()
+		$logger : Logger()
+	then
+		$logger.debug("# drools-rule:[Loan_009]-TL58");
+		result.put( AuthReason.TL58, $authProduct.reasonActions.get( AuthReason.TL58 ) );
+end
+
+rule "[Loan_010] 检查moto/emoto/pos渠道的分期交易是否支持"
+	when
+		TxnInfo( checkList contains "Loan_010" )
+		// 是否支持moto/emoto/pos渠道的分期交易
+		TxnInfo($transTerminal : transTerminal)
+		$authProduct : AuthProduct()
+		LoanInfo($transTerminal == AuthTransTerminal.POS , loanMerchant != null , loanMerchant.posLoanSupportInd != Indicator.Y)
+		or
+		LoanInfo($transTerminal == AuthTransTerminal.PHT , loanMerchant != null , loanMerchant.motoLoanSupportInd != Indicator.Y) 
+		or
+		LoanInfo($transTerminal == AuthTransTerminal.PHE , loanMerchant != null , loanMerchant.eBankLoanSupportInd != Indicator.Y)
+		$logger : Logger()	
+	then	
+		$logger.debug("# drools-rule:[Loan_010]-TS02");
+		result.put( AuthReason.TS02, $authProduct.reasonActions.get( AuthReason.TS02 ) );
+end
+
+rule "[Loan_011] 检查商户分期状态"
+	when
+		TxnInfo( checkList contains "Loan_011" )
+		// 商户分期状态=关闭
+		LoanInfo(loanMerchant != null , loanMerchant.recStatus == RecStatus.P)
+		$authProduct : AuthProduct()
+		$logger : Logger()	
+	then	
+		$logger.debug("# drools-rule:[Loan_011]-TM01");
+		result.put( AuthReason.TM01, $authProduct.reasonActions.get( AuthReason.TM01 ) );
+end
+
+rule "[Loan_012] 检查商户分期交易金额"
+	when
+		TxnInfo( checkList contains "Loan_012" )
+		// 获得商户信息
+		LoanInfo(loanMerchant != null , $lm:loanMerchant)
+		// 当前交易金额
+		TxnInfo($cta:chbTransAmt)
+		LoanInfo( $cta < $lm.posLoanSingleAmtMin || $cta > $lm.posLoanSingleAmtMax )
+		$authProduct : AuthProduct()
+		$logger : Logger()
+	then
+		$logger.debug("# drools-rule:[Loan_012]-TM02");
+		$logger.debug("# drools-rule:当前交易金额："+$cta);
+		$logger.debug("# drools-rule:商户最小金额："+$lm.posLoanSingleAmtMin);
+		$logger.debug("# drools-rule:商户最大金额："+$lm.posLoanSingleAmtMax);
+		result.put( AuthReason.TM02, $authProduct.reasonActions.get( AuthReason.TM02 ) );
+end

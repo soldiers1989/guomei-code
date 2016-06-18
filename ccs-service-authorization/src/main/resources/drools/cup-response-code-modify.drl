@@ -1,0 +1,56 @@
+//created on: 2012-7-26
+package com.sunline.ccs.service.auth.verifier
+
+import java.util.Map;
+import com.sunline.ccs.param.def.enums.AuthReason;
+import com.sunline.ccs.param.def.AuthProduct;
+import com.sunline.ppy.dictionary.enums.AuthTransType;
+import com.sunline.ccs.param.def.enums.AuthTransTerminal;
+import com.sunline.ccs.service.auth.context.TxnInfo;
+
+import org.slf4j.Logger;global Map<AuthReason, AuthAction> result;
+
+rule "[Resp_001] 拒绝行动码修正"
+	/*
+	*	行动指示= Decline(拒绝)
+	*	返回码 = 00/11
+	*/
+    when
+		TxnInfo( checkList contains "Resp_001" )
+    	TxnInfo( authAction == AuthAction.D, responsCode in ( "00", "11" ) )
+    	$authProduct : AuthProduct(checkEnabled[CheckType.RefuseActionFlag])
+    	$logger : Logger()	
+    then	
+    	$logger.debug("# drools-rule:[Resp_001]-S010");
+		result.put( AuthReason.S010, $authProduct.reasonActions.get(AuthReason.S010) );
+end
+
+rule "[Resp_002] 通过行动码修正"
+	/*
+	*	行动指示= Approve(拒绝)
+	*	返回码 != 34/41/43
+	*/
+    when
+		TxnInfo( checkList contains "Resp_002" )
+    	TxnInfo( authAction == AuthAction.A, responsCode not in ( "00", "11" ) )
+    	$authProduct : AuthProduct(checkEnabled[CheckType.RefuseActionFlag])
+    	$logger : Logger()	
+    then	
+    	$logger.debug("# drools-rule:[Resp_002]-S010");
+		result.put( AuthReason.S010, $authProduct.reasonActions.get(AuthReason.S010) );
+end
+
+rule "[Resp_003] 没收行动码修正"
+	/*
+	*	行动指示= PickUp(没收)
+	*	返回码 != 34/41/43
+	*/
+    when
+		TxnInfo( checkList contains "Resp_003" )
+    	TxnInfo( authAction == AuthAction.P, responsCode not in ( "34", "41", "43" ) )
+    	$authProduct : AuthProduct(checkEnabled[CheckType.RefuseActionFlag])
+    	$logger : Logger()	
+    then
+		$logger.debug("# drools-rule:[Resp_003]-S010");
+		result.put( AuthReason.S010, $authProduct.reasonActions.get(AuthReason.S010) );
+end

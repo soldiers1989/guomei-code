@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+	
+	<bean id="r6001" class="com.sunline.ccs.batch.cc6000.R6000AcctInfo" scope="step"/>
+
+	<bean id="p6001" class="org.springframework.batch.item.support.CompositeItemProcessor">
+		<property name="delegates">
+			<list>
+				<bean class="com.sunline.ccs.batch.cc6000.P6000SetOrganization"/>
+ 				<bean class="com.sunline.ccs.batch.cc6000.P6004InitializeAcctUsage"/>
+				<bean class="com.sunline.ccs.batch.cc6000.P6007InterestAcruFillUp"/>
+				<bean class="com.sunline.ccs.batch.cc6000.P6008PenaltyAcruFillUp"/>
+				<bean class="com.sunline.ccs.batch.cc6000.P6010TxnPosting"/>
+				<bean class="com.sunline.ccs.batch.cc6000.P6040DepositHierarchy"/>
+				<bean class="com.sunline.ccs.batch.cc6000.P6012PointsPosting"/>
+				<bean class="com.sunline.ccs.batch.cc6000.P6014AutoLoanR"/>
+  				<bean class="com.sunline.ccs.batch.cc6000.P6017MoveDue"/>
+  				<bean class="com.sunline.ccs.batch.cc6000.P6018AcctAge"/>  
+				<bean class="com.sunline.ccs.batch.cc6000.P6020LoanTransfer"/>
+				<bean class="com.sunline.ccs.batch.cc6000.P6022InterestAcruToday"/>
+				<bean class="com.sunline.ccs.batch.cc6000.P6023PenaltyAccuPerDay"/>
+				<bean class="com.sunline.ccs.batch.cc6000.P6025McLoanTransfer"/>
+				<bean class="com.sunline.ccs.batch.cc6000.P6027InterestGraceWaive"/>
+				<bean class="com.sunline.ccs.batch.cc6000.P6030GenerateOverLimitFee"/>
+				<bean class="com.sunline.ccs.batch.cc6000.P6032GenerateMessageFee"/>
+				<bean class="com.sunline.ccs.batch.cc6000.P6034GenerateLateChargeFee"/>
+				<bean class="com.sunline.ccs.batch.cc6000.P6035GenerateReplaceLateChargeFee"/>
+				<bean class="com.sunline.ccs.batch.cc6000.P6037InterestStatement"/>
+				<bean class="com.sunline.ccs.batch.cc6000.P6040DepositHierarchy"/>
+				<bean class="com.sunline.ccs.batch.cc6000.P6043ComputeDue"/>
+				<!-- 如果账龄提升日是账单日的情况下，账龄需要在两个步骤之后都执行一次 -->
+				<bean class="com.sunline.ccs.batch.cc6000.P6018AcctAge"/>  
+				<bean class="com.sunline.ccs.batch.cc6000.P6047GenerateStatement"/>
+				<bean class="com.sunline.ccs.batch.cc6000.P6050GenerateDirectDebit"/>
+				<bean class="com.sunline.ccs.batch.cc6000.P6053GenerateTxnGl"/>
+				<bean class="com.sunline.ccs.batch.cc6000.P6056GenerateBnpSum"/>
+				<bean class="com.sunline.ccs.batch.cc6000.P6058Collection"/>
+				<bean class="com.sunline.ccs.batch.cc6000.P6060AuthMemo"/>
+				<bean class="com.sunline.ccs.batch.cc6000.P6067UpdateAcct"/>
+				<bean class="com.sunline.ccs.batch.cc6000.P6068UpdateData"/>
+				<bean class="com.sunline.ccs.batch.cc6000.P6069UpdatePlanCompst" />
+				<bean class="com.sunline.ccs.batch.cc6000.P6063GenerateAcctUpdateList"/>
+				<bean class="com.sunline.ccs.batch.cc6000.P6001CheckData"/>
+			</list>
+		</property>
+	</bean>
+	
+	<bean id="w6001" class="com.sunline.ark.batch.NullItemWriter" />
+	
+</beans>

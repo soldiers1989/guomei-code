@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:rabbit="http://www.springframework.org/schema/rabbit"
+	xsi:schemaLocation="http://www.springframework.org/schema/rabbit http://www.springframework.org/schema/rabbit/spring-rabbit-1.1.xsd
+		http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.1.xsd
+		http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-3.1.xsd">
+
+	<!-- 导入消息队列通用配置 -->
+	<import resource="classpath:/acm-sdk-mq-context.xml"/>
+
+	<!-- 导入BMP服务配置 -->
+	<import resource="classpath:/pcm-sdk-mq-context.xml"/>
+	
+	<!-- 文件传输系统 -->
+	<!--  <bean class="com.sunline.acm.service.sdk.ServiceProxyFactoryBean">
+		<property name="global" value="true"/>
+		<property name="serviceInterface" value="com.sunline.fps.FileService"/>
+	</bean> -->
+
+	<!-- 队列列表，没有就自动创建 -->
+	<rabbit:queue queue-arguments="amqpQueueArguments" id="jobOperatorQueue" name="#{env.instanceName}.ccs.rpc.job-operator"/>
+
+	<!-- 业务组件导出及容器 -->
+	<bean id="jobOperatorService" class="com.sunline.acm.service.sdk.ServiceExporter">
+		<property name="service" ref="jobOperator"/>
+		<property name="serviceInterface" value="org.springframework.batch.core.launch.JobOperator"/>
+	</bean>
+
+	<rabbit:listener-container requeue-rejected="false" concurrency="1">
+		<!-- 提供批量远程管理服务 -->
+		<rabbit:listener ref="jobOperatorService" queues="jobOperatorQueue"/>
+	</rabbit:listener-container>
+	
+	<!-- 通知发送接口 -->
+	<bean id="msSmsNoticeSendService" class="com.sunline.acm.service.sdk.ServiceProxyFactoryBean">
+		<property name="queueName" value="nfs.rpc.smsclient" />
+		<property name="serviceInterface" value="com.sunline.ppy.api.MsSmsNoticeSendService" />
+	</bean>
+	
+</beans>

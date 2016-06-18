@@ -1,0 +1,78 @@
+package com.sunline.ccs.service.auth.verifier
+
+import java.util.Map;
+import com.sunline.ccs.param.def.enums.AuthReason;
+import com.sunline.ccs.param.def.AuthProduct;
+import com.sunline.ccs.param.def.ProductCredit;
+import com.sunline.ppy.api.MediumInfo;
+import com.sunline.ppy.dictionary.enums.ExpiryDateFlag;
+import com.sunline.ppy.dictionary.enums.Indicator;
+import com.sunline.ccs.infrastructure.shared.model.CcsCardO;
+import com.sunline.ccs.service.auth.context.CupMsg;
+import com.sunline.ccs.service.auth.context.TxnInfo;
+import com.sunline.ccs.service.auth.context.AuthContext;
+
+import org.slf4j.Logger;global Map<AuthReason, AuthAction> result;
+
+rule "[Stat_001] 检查逻辑卡激活状态"
+	/*
+		逻辑卡未激活，设置Reason
+		AuthReason.V304：逻辑卡未激活
+	*/
+    when
+    	TxnInfo( checkList contains "Stat_001" )
+    	CcsCardO( $activeInd : activeInd )
+		ProductCredit( $activeInd == Indicator.N , inactiveTrade == null )
+		or
+		ProductCredit( $activeInd == Indicator.N , inactiveTrade == false )
+		$authProduct : AuthProduct()
+    	$logger : Logger()	
+    then	
+    	$logger.debug("# drools-rule:[Stat_001]-V304");
+	    result.put(AuthReason.V304, $authProduct.reasonActions.get(AuthReason.V304) );
+end
+
+rule "[Stat_002] 检查介质卡有效期不匹配"
+	/*
+		介质卡有效期标志 = Unmatch/不匹配状态
+	*/
+	when
+		TxnInfo( checkList contains "Stat_002" )
+		MediumInfo(expiryDateFlag == ExpiryDateFlag.Unmatch)
+		$authProduct : AuthProduct()
+		$logger : Logger()	
+	then	
+		$logger.debug("# drools-rule:[Stat_002]-V101");
+	    result.put(AuthReason.V101, $authProduct.reasonActions.get(AuthReason.V101) );
+end
+
+rule "[Stat_003] 检查介质卡有效期过期"
+	/*
+		介质卡有效期标志 = Expire/过期
+	*/
+	when
+		TxnInfo( checkList contains "Stat_003" )
+		MediumInfo(expiryDateFlag == ExpiryDateFlag.Expire)
+		$authProduct : AuthProduct()
+		$logger : Logger()	
+	then	
+		$logger.debug("# drools-rule:[Stat_003]-V102");
+	    result.put(AuthReason.V102, $authProduct.reasonActions.get(AuthReason.V102) );
+end
+
+rule "[Stat_004] 检查介质卡激活状态"
+	/*
+		Y/已激活 N/未激活
+	*/
+	when
+		TxnInfo( checkList contains "Stat_004" )
+		MediumInfo( $cardActiveFlag : cardActiveFlag )
+		ProductCredit( $cardActiveFlag == Indicator.N , inactiveTrade == null )
+		or
+		ProductCredit( $cardActiveFlag == Indicator.N , inactiveTrade == false )
+		$authProduct : AuthProduct()
+		$logger : Logger()	
+	then	
+		$logger.debug("# drools-rule:[Stat_004]-V203");
+	    result.put(AuthReason.V203, $authProduct.reasonActions.get(AuthReason.V203) );
+end

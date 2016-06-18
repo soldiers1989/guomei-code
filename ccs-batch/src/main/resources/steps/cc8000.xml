@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+
+	<!-- 备份umo到auth_hst -->
+	<bean id="r8001" class="com.sunline.ccs.batch.cc8000.R8001AuthMemo" scope="step"/>
+	
+	<bean id="p8001" class="com.sunline.ccs.batch.cc8000.P8001AuthMemoHst" scope="step"/>
+	
+	<!-- <bean id="w8001" class="com.sunline.acm.service.sdk.BatchFileWriter" scope="step">
+		<description>授权历史文件</description>
+		<property name="fileDetailClass" value="com.sunline.ccs.batch.cc8000.U8001AuthMemo" />
+		<property name="filename" value="S8000AuthHstAdd"/>
+	</bean> -->
+	
+	<bean id="w8001" class="com.sunline.ark.batch.YakPartitionFileItemWriter" scope="step">
+		<description>虚拟卡申请回盘文件</description>
+		<property name="resource" ref="resS8000AuthHstAdd"/>
+		<property name="fileDetailClass" value="com.sunline.ccs.batch.cc8000.U8001AuthMemo"/>
+	</bean>
+	
+	<bean id="t8001FileMerger" class="com.sunline.ark.batch.FileMergerTasklet">
+		<property name="taskExecutor" ref="asyncTaskExecutor"/>
+		<property name="pollInterval" value="#{env['pollInterval']?:2000}" />
+		<property name="resources" >
+			<list>
+				<ref bean="resS8000AuthHstAdd" />
+			</list>
+		</property>
+	</bean>
+	
+	<!-- <bean id="e8001" class="com.sunline.fps.service.sdk.batch.DbFileExporter" scope="step">
+	    <property name="instanceName" value="#{env.instanceName}" />
+	    <property name="systemType" value="CCS" />
+	    <property name="filenames">
+			<list>
+				<value>S8000AuthHstAdd</value>
+			</list>
+		</property>
+	</bean> -->
+</beans>

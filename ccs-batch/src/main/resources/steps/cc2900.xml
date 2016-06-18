@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+
+	<bean id="r2901" class="com.sunline.ccs.batch.cc2900.R2901PointsAdjImp" scope="step"/>
+
+	<bean id="p2901" class="com.sunline.ccs.batch.cc2900.P2901PointsAdjImp" scope="step"/>
+	
+	<!-- <bean id="w2901" class="com.sunline.acm.service.sdk.BatchFileWriter" scope="step">
+		<description>积分调整报表文件</description>
+		<property name="fileDetailClass" value="com.sunline.ppy.dictionary.report.ccs.PointsRptItem"/>
+		<property name="filename" value="S1300PointAdjRpt"/>
+	</bean> -->
+	
+	<bean id="w2901" class="com.sunline.ark.batch.YakFileItemWriter" scope="step">
+		<description>年费收取报表文件</description>
+		<property name="resource" ref="resS1300PointAdjRpt"/>
+		<property name="fileDetailClass" value="com.sunline.ppy.dictionary.report.ccs.PointsRptItem"/>
+	</bean>
+	
+	<!-- <bean id="e2901" class="com.sunline.fps.service.sdk.batch.DbFileExporter" scope="step">
+	    <property name="instanceName" value="#{env.instanceName}" />
+	    <property name="systemType" value="CCS" />
+	    <property name="filenames">
+			<list>
+				<value>S1300PointAdjRpt</value>
+			</list>
+		</property>
+	</bean> -->
+</beans>
